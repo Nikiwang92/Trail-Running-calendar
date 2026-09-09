@@ -5,6 +5,7 @@ __pycache__/
 
 # Backups / temp
 backup/
+./claude
 
 # OS
 .DS_Store
