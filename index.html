@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 年全国山地越野赛事日历 — Bauhaus</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap');
+
+        :root {
+            --bg: #F0F0F0;
+            --fg: #121212;
+            --red: #D02020;
+            --blue: #1040C0;
+            --yellow: #F0C020;
+            --muted: #E0E0E0;
+            --border: #121212;
+            --white: #FFFFFF;
+            --shadow-sm: 4px 4px 0px 0px #121212;
+            --shadow-md: 6px 6px 0px 0px #121212;
+            --shadow-lg: 8px 8px 0px 0px #121212;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.6;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Hero ===== */
+        .hero {
+            background: var(--white);
+            padding: 70px 20px 50px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 4px solid var(--border);
+        }
+
+        /* 背景几何装饰形状 */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -40px;
+            width: 180px;
+            height: 180px;
+            background: var(--yellow);
+            border-radius: 50%;
+            border: 4px solid var(--border);
+            opacity: 0.9;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -50px;
+            left: 6%;
+            width: 120px;
+            height: 120px;
+            background: var(--red);
+            border: 4px solid var(--border);
+            transform: rotate(45deg);
+        }
+
+        .hero .geo-deco {
+            position: absolute;
+            z-index: 0;
+        }
+        .geo-deco.tri {
+            top: 30px;
+            left: 8%;
+            width: 0;
+            height: 0;
+            border-left: 30px solid transparent;
+            border-right: 30px solid transparent;
+            border-bottom: 52px solid var(--blue);
+            filter: drop-shadow(3px 3px 0px #121212);
+        }
+
+        .hero h1 {
+            font-size: 2.4rem;
+            font-weight: 900;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+            color: var(--fg);
+        }
+
+        .hero h1 .accent {
+            display: inline-block;
+            background: var(--red);
+            color: var(--white);
+            padding: 2px 12px;
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transform: rotate(-2deg);
+        }
+
+        .hero p {
+            color: var(--fg);
+            font-size: 0.95rem;
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 34px;
+            position: relative;
+            z-index: 1;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 18px 22px;
+            background: var(--yellow);
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease-out;
+            min-width: 120px;
+        }
+
+        .stat-item:nth-child(2) {
+            background: var(--red);
+            color: var(--white);
+        }
+        .stat-item:nth-child(3) {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        .stat-item:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-num {
+            font-size: 2.4rem;
+            font-weight: 900;
+            line-height: 1;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* ===== Sticky nav ===== */
+        .sticky-nav {
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 100;
+            border-bottom: 4px solid var(--border);
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 18px 0;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border-radius: 0;
+            border: 3px solid var(--border);
+            background: var(--white);
+            color: var(--fg);
+            font-size: 0.95rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.2s ease-out;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-box:focus {
+            box-shadow: var(--shadow-md);
+            transform: translate(-2px, -2px);
+        }
+
+        .filter-btn {
+            padding: 10px 18px;
+            border-radius: 0;
+            border: 3px solid var(--border);
+            background: var(--white);
+            color: var(--fg);
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            transition: all 0.2s ease-out;
+            white-space: nowrap;
+            box-shadow: var(--shadow-sm);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .filter-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .filter-btn.active {
+            background: var(--red);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .month-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0 0 14px;
+        }
+
+        .month-btn {
+            min-width: 44px;
+            padding: 9px 12px;
+            border-radius: 0;
+            border: 3px solid var(--border);
+            background: var(--white);
+            color: var(--fg);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            transition: all 0.2s ease-out;
+            box-shadow: var(--shadow-sm);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .month-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .month-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .month-btn.active {
+            background: var(--blue);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .province-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 0 0 16px;
+        }
+
+        .province-btn {
+            min-width: 56px;
+            padding: 8px 12px;
+            border-radius: 0;
+            border: 3px solid var(--border);
+            background: var(--white);
+            color: var(--fg);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 700;
+            transition: all 0.2s ease-out;
+            white-space: nowrap;
+            box-shadow: var(--shadow-sm);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .province-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .province-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .province-btn.active {
+            background: var(--fg);
+            color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== Month section ===== */
+        .month-section {
+            margin-bottom: 44px;
+        }
+
+        .month-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 22px;
+            padding: 12px 16px;
+            background: var(--fg);
+            color: var(--white);
+            border: 3px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .month-icon {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+
+        .month-title {
+            font-size: 1.4rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+        }
+
+        .month-count {
+            margin-left: auto;
+            background: var(--yellow);
+            color: var(--fg);
+            padding: 3px 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 2px solid var(--border);
+        }
+
+        .race-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 22px;
+        }
+
+        /* ===== Race card ===== */
+        .race-card {
+            background: var(--white);
+            border: 3px solid var(--border);
+            padding: 20px;
+            transition: all 0.2s ease-out;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* 右上角几何装饰：圆形 */
+        .race-card::after {
+            content: '';
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 14px;
+            height: 14px;
+            background: var(--red);
+            border-radius: 50%;
+            border: 2px solid var(--border);
+        }
+
+        .race-card.past::after {
+            background: var(--muted);
+        }
+
+        .race-card:hover {
+            transform: translate(-3px, -3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .race-card.past {
+            opacity: 0.68;
+        }
+
+        .race-date-badge {
+            display: inline-block;
+            background: var(--blue);
+            color: var(--white);
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 5px 12px;
+            margin-bottom: 12px;
+            border: 2px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .race-card.past .race-date-badge {
+            background: var(--muted);
+            color: var(--fg);
+        }
+
+        .race-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            line-height: 1.3;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-right: 24px;
+        }
+
+        .race-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+
+        .race-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--fg);
+            font-weight: 500;
+        }
+
+        .race-meta-item .icon {
+            width: 18px;
+            text-align: center;
+        }
+
+        .race-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 2px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .tag-utmb {
+            background: #4CAF50;
+            color: #fff;
+        }
+
+        .tag-golden {
+            background: #4CAF50;
+            color: #121212;
+        }
+
+        .tag-itra {
+            background: var(--yellow);
+            color: var(--white);
+        }
+
+        .tag-distance {
+            background: var(--fg);
+            color: var(--white);
+        }
+
+        .dist-list {
+            align-items: flex-start;
+        }
+
+        .dist-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .dist-item {
+            font-size: 0.78rem;
+            color: var(--fg);
+            background: var(--muted);
+            padding: 3px 9px;
+            border: 2px solid var(--border);
+            font-weight: 500;
+        }
+
+        .race-wechat {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: var(--fg);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+        }
+
+        .wechat-icon {
+            font-size: 0.85rem;
+        }
+
+        .wechat-name {
+            color: var(--red);
+            font-weight: 700;
+        }
+
+        .tag-status-done {
+            background: var(--muted);
+            color: var(--fg);
+        }
+
+        .tag-status-open {
+            background: var(--yellow);
+            color: var(--fg);
+        }
+
+        .tag-status-closed {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .tag-status-upcoming {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        .past-label {
+            position: absolute;
+            top: 12px;
+            right: 40px;
+            font-size: 0.68rem;
+            color: var(--fg);
+            background: var(--yellow);
+            padding: 3px 8px;
+            border: 2px solid var(--border);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* ===== Links section（色块：蓝色） ===== */
+        .links-section {
+            margin-top: 30px;
+            padding: 30px;
+            background: var(--blue);
+            border: 4px solid var(--border);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .links-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 22px;
+            color: var(--white);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--white);
+            border: 3px solid var(--border);
+            text-decoration: none;
+            color: var(--fg);
+            transition: all 0.2s ease-out;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .link-item:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-md);
+            background: var(--yellow);
+        }
+
+        .link-icon {
+            font-size: 1.6rem;
+        }
+
+        .link-info .link-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .link-info .link-desc {
+            font-size: 0.78rem;
+            color: var(--fg);
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--white);
+            background: var(--fg);
+            font-size: 0.82rem;
+            margin-top: 40px;
+            font-weight: 500;
+        }
+
+        #backToTop {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--yellow);
+            color: var(--fg);
+            border: 3px solid var(--border);
+            font-size: 1.3rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s ease-out;
+            z-index: 9999;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        #backToTop:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        #backToTop:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--fg);
+            font-size: 1.1rem;
+            display: none;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 1.9rem; }
+            .stats-bar { gap: 10px; }
+            .stat-item { min-width: 96px; padding: 14px 12px; }
+            .stat-num { font-size: 1.9rem; }
+            .race-grid { grid-template-columns: 1fr; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .filter-btn { text-align: center; }
+            .race-card { border-width: 2px; box-shadow: var(--shadow-sm); }
+            #backToTop {
+                bottom: 18px;
+                right: 18px;
+                width: 42px;
+                height: 42px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="geo-deco tri"></div>
+    <h1>2026 全国山地越野<br><span class="accent">赛事日历</span></h1>
+    <p>Trail Running Events in China 2026</p>
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="stat-num" id="totalCount">0</span>
+            <div class="stat-label">赛事总数</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-num" id="provinceCount">0</span>
+            <div class="stat-label">覆盖省份</div>
+        </div>
+        <div class="stat-item">
+            <span class="stat-num" id="upcomingCount">0</span>
+            <div class="stat-label">未开始赛事</div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="sticky-nav">
+    <div class="toolbar">
+        <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...">
+        <button class="filter-btn active" data-filter="all">全部</button>
+        <button class="filter-btn" data-filter="upcoming">未开始</button>
+        <button class="filter-btn" data-filter="past">已结束</button>
+        <button class="filter-btn" data-filter="utmb">UTMB</button>
+        <button class="filter-btn" data-filter="golden">黄金联赛</button>
+        <button class="filter-btn" data-filter="itra">ITRA</button>
+        <button class="filter-btn" data-filter="100k">100K+</button>
+    </div>
+    <div class="month-nav">
+        <button class="month-btn active" data-month="all">全部</button>
+        <button class="month-btn" data-month="1">1月</button>
+        <button class="month-btn" data-month="2">2月</button>
+        <button class="month-btn" data-month="3">3月</button>
+        <button class="month-btn" data-month="4">4月</button>
+        <button class="month-btn" data-month="5">5月</button>
+        <button class="month-btn" data-month="6">6月</button>
+        <button class="month-btn" data-month="7">7月</button>
+        <button class="month-btn" data-month="8">8月</button>
+        <button class="month-btn" data-month="9">9月</button>
+        <button class="month-btn" data-month="10">10月</button>
+        <button class="month-btn" data-month="11">11月</button>
+        <button class="month-btn" data-month="12">12月</button>
+    </div>
+
+    <div class="province-nav">
+        <button class="province-btn active" data-province="all">全部省份</button>
+    </div>
+    </div>
+
+    <div id="raceContainer"></div>
+    <div class="no-results" id="noResults">没有找到匹配的赛事</div>
+
+    <div class="links-section">
+        <h2>赛事报名与查询平台</h2>
+        <div class="links-grid">
+            <a class="link-item" href="https://zuicool.com/events?type=trail-run" target="_blank">
+                <div class="link-icon">&#x1F3C3;</div>
+                <div class="link-info">
+                    <div class="link-name">最酷 zuicool.com</div>
+                    <div class="link-desc">国内最大越野跑赛事聚合平台</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://www.runninginchina.org/event/index.html?page=1&type_id=3" target="_blank">
+                <div class="link-icon">&#x1F1E8;&#x1F1F3;</div>
+                <div class="link-info">
+                    <div class="link-name">跑IN中国</div>
+                    <div class="link-desc">赛事日历与报名入口</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://www.ahotu.com/zh/calendar/trail-running/china" target="_blank">
+                <div class="link-icon">&#x1F30F;</div>
+                <div class="link-info">
+                    <div class="link-name">Ahotu</div>
+                    <div class="link-desc">国际越野赛日历（中国站）</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://live.utmb.world/zh-Hans/calendar" target="_blank">
+                <div class="link-icon">&#x1F3D4;</div>
+                <div class="link-info">
+                    <div class="link-name">UTMB Live</div>
+                    <div class="link-desc">UTMB世界系列赛官方日历</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://www.ihuipao.com/race" target="_blank">
+                <div class="link-icon">&#x2764;</div>
+                <div class="link-info">
+                    <div class="link-name">爱汇跑</div>
+                    <div class="link-desc">赛事报名平台</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://app.sport-china.cn/race/" target="_blank">
+                <div class="link-icon">&#x1F3C5;</div>
+                <div class="link-info">
+                    <div class="link-name">第一赛道</div>
+                    <div class="link-desc">城市体育赛事运营商</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月9日</p>
+    <p style="margin-top:8px;">部分赛事日期和报名信息可能调整，请以各赛事官方公告为准</p>
+</footer>
+
+<script>
+const races = [
+    { name:"2026黄龙五彩池新年登高赛暨Outopia山野来赛-黄龙站", date:"2026-01-01", province:"四川", city:"阿坝州·松潘县·黄龙景区", distances:[{d:"25K"},{d:"12K"}], tags:["itra"], status:"past" },
+    { name:"2026凯乐石广州100越野赛", date:"2026-01-17", endDate:"2026-01-18", province:"广东", city:"广州市白云区·广州体育馆", distances:[{d:"100K",climb:"4712m",time:"28h"},{d:"60K",time:"18h"},{d:"30K",time:"9h"},{d:"10K亲子",time:"4h"}], tags:["itra"], status:"past", link:"https://www.letoursport.com/events?mid=75253", wechat:"朗途体育" },
+    { name:"UTCR·云浮站暨2026郁南越野赛", date:"2026-01-18", province:"广东", city:"云浮市/郁南县·大王山森林公园", distances:[{d:"50K",climb:"2211m",time:"14h"},{d:"30K",climb:"1208m",time:"8h"},{d:"10K",time:"3h"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/34967", wechat:"耐吉赛事" },
+    { name:"2026拓路者雅安喇叭河冰雪山径赛暨越野跑蜀山超级联赛（天全站）", date:"2026-01-24", province:"四川", city:"雅安市天全县·二郎山喇叭河", distances:[{d:"25K",time:"8h"},{d:"10K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/13009", wechat:"深行户外" },
+    { name:"2026杭州迎新登高大会", date:"2026-01-25", province:"浙江", city:"杭州市余杭区·径山", distances:[{d:"20K",climb:"1110m",time:"7h"},{d:"10K",climb:"650m",time:"4h"}], tags:[], status:"past", link:"https://reg.zuicool.com/17938", wechat:"游侠客体育" },
+    { name:"2026深圳KidsTrail青少年越野赛（冬季赛）", date:"2026-01-10", province:"广东", city:"深圳市·阳台山", distances:[{d:"10K"},{d:"5K"}], tags:[], status:"past", link:"https://zuicool.com/event/35062", wechat:"KidsTrail" },
+    { name:"2026兴文僰王古道越野系列赛·仙峰站", date:"2026-02-01", province:"四川", city:"宜宾市兴文县·仙峰山", distances:[{d:"40K"},{d:"22K"},{d:"10K"}], tags:["itra"], status:"past", wechat:"僰王古道" },
+    { name:"WAXE蛙壳·2026齐云山冬季越野赛", date:"2026-02-01", province:"安徽", city:"黄山市休宁县·齐云山", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/84598" },
+    { name:"2026戈尼尔越野训练营南京老山站", date:"2026-02-21", province:"江苏", city:"南京市·老山", distances:[{d:"21K"}], tags:[], status:"past", link:"https://www.ihuipao.com/race/9Vbyv6BjrNybj1nYg48Z", wechat:"汇跑赛事" },
+    { name:"2026厦门（同安）越野赛 by UTMB", date:"2026-03-14", endDate:"2026-03-15", province:"福建", city:"厦门市同安区·梵天文化广场", distances:[{d:"100K",climb:"5154m",time:"29h"},{d:"50K",climb:"2460m",time:"16h"},{d:"20K",climb:"1519m",time:"9h"},{d:"10K",climb:"263m",time:"3h"}], tags:["utmb","itra"], status:"past", link:"https://xiamen.utmb.world/zh-Hans", wechat:"厦门体育集团赛事" },
+    { name:"越野东海—2026舟山群岛穿越之旅暨黄金联赛中国系列赛（舟山站）", date:"2026-03-14", endDate:"2026-03-15", province:"浙江", city:"舟山市普陀区·莲花洋公园", distances:[{d:"50K",climb:"2605m",time:"15h"},{d:"30K",climb:"1412m",time:"7.5h"},{d:"20K",climb:"592m",time:"5h"}], tags:["golden","itra"], status:"past", link:"https://zuicool.com/event/88921", wechat:"越野东海" },
+    { name:"2026徽黄之路环黄山越野赛", date:"2026-03-14", province:"安徽", city:"黄山市·焦村西海营地", distances:[{d:"100K"},{d:"50K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://www.ihuipao.com/race/6LN7OlWmE3Jzj2dKbJB3", wechat:"汇跑赛事" },
+    { name:"2026 Outopia山野来赛·深圳站春季赛", date:"2026-03-15", province:"广东", city:"深圳市", distances:[{d:"30K"},{d:"15K"}], tags:[], status:"past" },
+    { name:"2026酷爱白水涧·拓野杭城第一峰", date:"2026-03-15", province:"浙江", city:"杭州市临安区·白水涧", distances:[{d:"30K"},{d:"15K"}], tags:[], status:"past" },
+    { name:"2026安踏冠军腾冲高黎贡超级山径赛", date:"2026-03-20", endDate:"2026-03-22", province:"云南", city:"保山市腾冲市·砚湖公园", distances:[{d:"168K",time:"46h"},{d:"120K"},{d:"55K"},{d:"35K"},{d:"15K"},{d:"5K少儿"}], tags:["itra"], status:"past", link:"https://mgucn.saihuitong.com/", wechat:"高黎贡超级山径赛" },
+    { name:"2026中国山地越野公开赛（鹿寨站）暨呦呦鹿鸣中渡古镇越野赛", date:"2026-03-21", endDate:"2026-03-22", province:"广西", city:"柳州市鹿寨县·中渡镇", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:["itra"], status:"past" },
+    { name:"2026全国越野跑锦标赛（第3站）暨青少年越野跑锦标赛", date:"2026-03-21", endDate:"2026-03-22", province:"贵州", city:"清镇市", distances:[], tags:[], status:"past" },
+    { name:"2026 Salomon社区赛·南京站", date:"2026-03-22", province:"江苏", city:"南京市", distances:[{d:"21K"},{d:"10K"}], tags:[], status:"past" },
+    { name:"春韵文州·2026文县白马山寨跑山赛", date:"2026-03-22", province:"甘肃", city:"陇南市文县", distances:[{d:"42K"},{d:"21K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/14512" },
+    { name:"2026金陵100越野挑战赛", date:"2026-03-28", endDate:"2026-03-29", province:"江苏", city:"南京市·宁镇山脉", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"past" },
+    { name:"2026MAMMUT黄山徽州古城越野赛", date:"2026-03-28", endDate:"2026-03-29", province:"安徽", city:"黄山市歙县·徽州古城", distances:[{d:"60K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/15356" },
+    { name:"2026Outopia首届莫干山云间花径越野跑", date:"2026-03-29", province:"浙江", city:"湖州市德清·莫干山", distances:[{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/18060" },
+    { name:"2026北京三峰之巅越野赛（春季赛）", date:"2026-03-15", province:"北京", city:"大觉寺", distances:[{d:"42K"},{d:"22K"},{d:"10K"}], tags:[], status:"past", link:"https://v6.ihuipao.com/race/r5vKA2RDzqRrmnGwWq8b", wechat:"汇跑赛事" },
+    { name:"2026北京三峰天际线越野赛", date:"2026-03-29", province:"北京", city:"三峰连穿", distances:[{d:"42K"},{d:"22K"},{d:"10K"}], tags:[], status:"past", link:"https://v6.ihuipao.com/race/Kn6NygxDqqJzDqPZebWM", wechat:"汇跑赛事" },
+    { name:"2026 MONTANE VIA系列越野赛首站·莫干山站", date:"2026-04-06", province:"浙江", city:"湖州市德清·莫干山", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/10813" },
+    { name:"2026莫干山越野赛 by UTMB", date:"2026-04-10", endDate:"2026-04-12", province:"浙江", city:"湖州市德清县·莫干山镇", distances:[{d:"114K",time:"34h"},{d:"80K"},{d:"50K"},{d:"20K"}], tags:["utmb","itra"], status:"past", link:"https://mogan.utmb.world/zh-Hans/", wechat:"隆景体育" },
+    { name:"2026中国山地越野挑战赛（石城站）暨红石100石城温泉越野赛", date:"2026-04-11", province:"江西", city:"赣州市石城县", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"past" },
+    { name:"蜀道·青泥岭2026山地挑战赛", date:"2026-04-12", province:"甘肃", city:"陇南市徽县", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past" },
+    { name:"2026第三届逐梦天姥越野挑战赛", date:"2026-04-12", province:"浙江", city:"绍兴市新昌县·天姥山", distances:[{d:"50K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/73572" },
+    { name:"2026首届升钟湖交发杯越野跑挑战赛", date:"2026-04-19", province:"四川", city:"南充市南部县·升钟湖", distances:[{d:"25K"},{d:"10K"},{d:"5K亲子"}], tags:[], status:"past", link:"https://reg.zuicool.com/10990", wechat:"升钟湖越野赛" },
+    { name:"2026黄岩九峰越野大师赛暨黄金联赛中国系列赛（九峰站）", date:"2026-04-19", province:"浙江", city:"台州市黄岩区·九峰公园", distances:[{d:"30K",climb:"2079m",time:"6.75h"}], tags:["golden","itra"], status:"past", link:"https://zuicool.com/event/21048", wechat:"柴古唐斯" },
+    { name:"2026大连棠梨湖越野赛", date:"2026-04-19", province:"辽宁", city:"大连市甘井子区", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"past", link:"https://reg.zuicool.com/11687" },
+    { name:"NORTHLAND诺诗兰2026天目湖100越野赛", date:"2026-04-18", endDate:"2026-04-19", province:"江苏", city:"常州市溧阳·天目湖·南山竹海", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"past" },
+    { name:"好运山东2026第二届环泰山T60大徒步春季越野赛", date:"2026-04-18", province:"山东", city:"泰安市·泰山", distances:[{d:"60K"},{d:"35K"},{d:"20K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/17966" },
+    { name:"2026 HOKA一起野外越野赛（常熟虞山站）", date:"2026-04-26", province:"江苏", city:"苏州市常熟·虞山", distances:[{d:"35K"},{d:"20K"},{d:"10K"}], tags:[], status:"past", link:"https://reg.zuicool.com/19866" },
+    { name:"2026杜鹃花海·阳春鸡笼顶越野赛暨黄金联赛中国系列赛（鸡笼顶站）", date:"2026-04-26", province:"广东", city:"阳江市阳春·双滘镇", distances:[{d:"30K"},{d:"15K"}], tags:["golden","itra"], status:"past", link:"https://zuicool.com/event/79741" },
+    { name:"上海易跑森林越野赛", date:"2026-04-26", province:"上海", city:"杨浦区·共青国家森林公园", distances:[{d:"20K"},{d:"10K"},{d:"亲子"}], tags:[], status:"past" },
+    { name:"2026中岳嵩山越野赛", date:"2026-04-25", province:"河南", city:"郑州市登封·嵩山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past" },
+    { name:"2026湾区同行·第二届深圳光明四桥越野挑战赛", date:"2026-05-03", province:"广东", city:"深圳市光明区", distances:[{d:"42K"},{d:"20K"},{d:"10K"}], tags:[], status:"past", link:"https://reg.zuicool.com/10199" },
+    { name:"2026从化一百越野赛", date:"2026-05-10", province:"广东", city:"广州市从化区·良口镇", distances:[{d:"100K",climb:"5484m",time:"28h"},{d:"50K",climb:"2502m",time:"14h"},{d:"30K",climb:"1108m",time:"8h"},{d:"10K",time:"2h"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/54950", wechat:"希必恩体育" },
+    { name:"2026海上长城越野赛", date:"2026-05-10", province:"浙江", city:"宁波市奉化区·黄贤", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"past", link:"https://reg.zuicool.com/17738" },
+    { name:"2026五郎青羊神农架山径赛暨黄金联赛中国系列赛（神农架站）", date:"2026-05-16", endDate:"2026-05-17", province:"湖北", city:"神农架林区·松柏镇", distances:[{d:"50K",climb:"4243m",time:"16h"},{d:"28K",climb:"2186m",time:"6h"}], tags:["golden","itra"], status:"past", link:"https://reg.zuicool.com/10862", wechat:"荒野拍档" },
+    { name:"2026大连碧流河河谷越野赛", date:"2026-05-16", province:"辽宁", city:"大连市庄河市", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"past", link:"https://reg.zuicool.com/17632" },
+    { name:"深行·2026第二届越西大凉山超级越野跑", date:"2026-05-17", province:"四川", city:"凉山州·越西县", distances:[{d:"42K",climb:"2050m",time:"11h"},{d:"31K",climb:"1070m"},{d:"20K",climb:"642m"},{d:"10K",climb:"591m"}], tags:["itra"], status:"past", link:"https://www.utms.com.cn/event?id=850785", wechat:"深行户外" },
+    { name:"2026传奇首野莫干山越野赛", date:"2026-05-17", province:"浙江", city:"湖州市德清·莫干山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/11165" },
+    { name:"福山无界·2026吉安武功山越野赛", date:"2026-05-17", endDate:"2026-05-18", province:"江西", city:"吉安市安福县", distances:[{d:"60K"},{d:"45K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/12369" },
+    { name:"2026安踏冠军·大连100越野赛", date:"2026-05-22", endDate:"2026-05-24", province:"辽宁", city:"大连市西岗区·傅家庄公园", distances:[{d:"100K"},{d:"75K"},{d:"50K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/12996", wechat:"大连100" },
+    { name:"2026天河50越野赛", date:"2026-05-30", province:"广东", city:"广州市天河区·华南国家植物园稀树草坪", distances:[{d:"15K",climb:"784m",time:"6h"},{d:"30K"}], tags:[], status:"past" },
+    { name:"思凯乐·2026第二届九寨沟环神仙池超级越野赛", date:"2026-05-30", endDate:"2026-05-31", province:"四川", city:"阿坝州·九寨沟县·华美胜地神鹰广场", distances:[{d:"100K",climb:"5949m",time:"36h"},{d:"50K",climb:"3102m",time:"18h"},{d:"35K",climb:"1968m",time:"12h"},{d:"12K",climb:"568m",time:"5h"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/70031", wechat:"九寨沟环神仙池超级越野赛" },
+    { name:"2026第七届四姑娘山云间花径越野跑暨越野黄金联赛中国系列赛总决赛", date:"2026-05-30", endDate:"2026-05-31", province:"四川", city:"阿坝州·四姑娘山", distances:[{d:"44K",climb:"2154m",time:"13h"},{d:"29K",climb:"1130m",time:"10h"},{d:"22K",climb:"1407m",time:"5h"},{d:"17K",climb:"996m",time:"7h"}], tags:["golden","itra"], status:"past", link:"https://www.utms.com.cn/event?id=785343", wechat:"深行户外" },
+    { name:"2026司马台100长城越野赛", date:"2026-05-30", endDate:"2026-05-31", province:"北京", city:"密云区·古北水镇", distances:[{d:"50K",climb:"1895m"},{d:"30K",climb:"1413m"},{d:"20K",climb:"911m"},{d:"6K",climb:"415m"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/95428", wechat:"司马台100越野赛" },
+    { name:"华北之巅2026京冀灵山越野赛", date:"2026-05-30", endDate:"2026-05-31", province:"北京", city:"门头沟·灵山", distances:[{d:"100K"},{d:"50K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/11245" },
+    { name:"山东省山地越野联赛（西海岸站）暨趣野·2026珠山越野精英赛", date:"2026-05-31", province:"山东", city:"青岛市黄岛区", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/18463" },
+    { name:"2026北灵山巅峰越野挑战赛", date:"2026-06-07", province:"河北", city:"张家口市涿鹿县·北灵山", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:[], status:"past", link:"https://reg.zuicool.com/12726" },
+    { name:"2026新疆布尔津喀纳斯超级越野赛", date:"2026-06-11", endDate:"2026-06-14", province:"新疆", city:"阿勒泰·喀纳斯", distances:[{d:"100K"},{d:"60K"},{d:"40K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/66644", wechat:"喀纳斯越野" },
+    { name:"BigK·2026第二届东北168本溪桓仁五女山越野赛", date:"2026-06-12", province:"辽宁", city:"本溪市桓仁县·五女山", distances:[{d:"168K"},{d:"100K"},{d:"50K"}], tags:["itra"], status:"past" },
+    { name:"2026 MONTANE崇礼100越野赛", date:"2026-06-13", endDate:"2026-06-14", province:"河北", city:"张家口市崇礼·太舞滑雪小镇", distances:[{d:"100K"},{d:"70K"},{d:"40K"},{d:"20K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/78697" },
+    { name:"2026中岳嵩山越野赛", date:"2026-06-14", province:"河南", city:"郑州市登封·嵩山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past" },
+    { name:"2026凯乐石松花湖东北100跑山赛", date:"2026-06-21", province:"吉林", city:"吉林市·松花湖", distances:[{d:"100K",climb:"5305m",time:"30h"},{d:"55K",climb:"3238m",time:"17h"},{d:"30K",climb:"2019m",time:"10h"},{d:"20K",climb:"1253m",time:"8h"},{d:"10K",climb:"763m",time:"4h"}], tags:["itra"], status:"past", link:"https://moganshan.saihuitong.com/events?mid=74255", wechat:"朗途体育" },
+    { name:"Merrell迈乐2026稻城亚丁天空跑越野赛", date:"2026-06-20", province:"四川", city:"甘孜州稻城县·香格里拉镇", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/17953" },
+    { name:"2026乌鞘岭越岭之王越野赛", date:"2026-06-20", province:"甘肃", city:"武威市天祝县", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/88511" },
+    { name:"2026香格里拉越野赛", date:"2026-06-20", province:"云南", city:"迪庆·香格里拉·普达措", distances:[{d:"75K"},{d:"55K"},{d:"25K"},{d:"8K"}], tags:["itra"], status:"past", link:"https://www.ihuipao.com/race/1qM4G6eD2z6NDYpZzn2B" },
+    { name:"凯乐石FUGA训练赛深圳站暨2026小猫快跑马峦山越野挑战赛", date:"2026-06-21", province:"广东", city:"深圳市坪山区", distances:[{d:"20K"},{d:"11K"}], tags:[], status:"past", link:"https://reg.zuicool.com/16134" },
+    { name:"2026Outopia第七届黄龙极限耐力赛", date:"2026-06-25", endDate:"2026-06-28", province:"四川", city:"阿坝州松潘县·黄龙", distances:[{d:"108K"},{d:"77K"},{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past" },
+    { name:"2026北京大学山地越野赛暨首届高校邀请赛", date:"2026-06-28", province:"河北", city:"张家口市崇礼·太舞滑雪小镇", distances:[{d:"24K"},{d:"10K"},{d:"亲子10K"}], tags:[], status:"past", link:"https://pku-ultra-running.com/", wechat:"PKU山地越野" },
+    { name:"ACG 2026崇礼168超级越野赛", date:"2026-07-11", endDate:"2026-07-13", province:"河北", city:"张家口市崇礼区", distances:[{d:"168K",climb:"8636m"},{d:"100K",climb:"5500m"},{d:"70K",climb:"3014m"},{d:"50K",climb:"2655m"},{d:"30K",climb:"1437m"}], tags:["itra"], status:"past", link:"https://sport.luojiweiye.com/web/new_website/?website_id=9&id=522", wechat:"崇礼168超级越野赛" },
+    { name:"2026阿尼玛卿极限挑战赛", date:"2026-08-07", province:"青海", city:"果洛州·阿尼玛卿雪山", distances:[{d:"55K",climb:"2560m",time:"13h"},{d:"27K"},{d:"8K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/61754", wechat:"万达体育" },
+    { name:"2026崇礼云巅之径越野赛", date:"2026-07-26", province:"河北", city:"张家口市崇礼·喜鹊梁", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"past", link:"https://reg.zuicool.com/14660" },
+    { name:"2026云南方山森林越野赛", date:"2026-07-25", endDate:"2026-07-26", province:"云南", city:"楚雄州永仁县·方山", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/86058" },
+    { name:"2026野性祁连越野跑", date:"2026-07-25", endDate:"2026-07-26", province:"甘肃", city:"武威市天祝县·冰沟河", distances:[{d:"60K"},{d:"40K"},{d:"25K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/62257" },
+    { name:"2026四姑娘山云间花径越野跑（夏季场）", date:"2026-07-27", endDate:"2026-07-29", province:"四川", city:"阿坝州·四姑娘山", distances:[{d:"25K"},{d:"25K星野露营"}], tags:["itra"], status:"past", link:"https://www.utms.com.cn/", wechat:"深行户外" },
+    { name:"2026奔跑贵阳·阳明问道100越野赛", date:"2026-07-25", endDate:"2026-07-26", province:"贵州", city:"贵阳市修文县", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"past" },
+    { name:"2026七星关·蝴蝶径越野赛", date:"2026-08-02", province:"贵州", city:"毕节市七星关区·同心公园", distances:[{d:"50K",climb:"2877m",time:"15h"},{d:"30K",climb:"1367m",time:"8h"},{d:"10K",climb:"632m",time:"3h"},{d:"5K",climb:"382m",time:"2h"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/64123", wechat:"飞象体育" },
+    { name:"2026阿尼南迦跑山赛", date:"2026-08-08", province:"甘肃", city:"武威市·大红沟", distances:[{d:"25K",climb:"1460m",time:"7h"},{d:"15K",time:"4h"},{d:"7K",time:"3h"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/26313" },
+    { name:"2026全国徒步大会（贵阳站）", date:"2026-08-08", province:"贵州", city:"贵阳市", distances:[{d:"20K"},{d:"10K"}], tags:[], status:"past" },
+    { name:"2026斯巴达勇士越野周末-崇礼站", date:"2026-08-07", endDate:"2026-08-09", province:"河北", city:"张家口市崇礼·云顶滑雪公园", distances:[{d:"50K"},{d:"21K"},{d:"10K"}], tags:[], status:"past", link:"https://reg.zuicool.com/17387", wechat:"斯巴达勇士赛" },
+    { name:"2026第七届海坨山超级越野赛", date:"2026-08-14", endDate:"2026-08-16", province:"河北", city:"张家口市赤城县·海坨山谷", distances:[{d:"100K"},{d:"50K"},{d:"30K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/14721" },
+    { name:"户外特工·2026山顶见系列赛——马峦山站", date:"2026-08-15", province:"广东", city:"深圳市坪山区", distances:[{d:"42K"},{d:"21K"},{d:"10K"}], tags:[], status:"past", link:"https://zuicool.com/event/84727" },
+    { name:"崇礼翠云山50公里越野赛暨崇礼·她山径女子越野赛", date:"2026-08-16", province:"河北", city:"张家口市崇礼·翠云山", distances:[{d:"30K",climb:"1686m",time:"10h"},{d:"10K",climb:"499m",time:"4h"}], tags:["itra"], status:"past", link:"https://www.ahotu.com/sv/event/her-trail-chongli", wechat:"都辉体育" },
+    { name:"中国·百里杜鹃第七届越野跑挑战赛", date:"2026-08-22", endDate:"2026-08-23", province:"贵州", city:"毕节市大方县·百里杜鹃", distances:[{d:"100K",climb:"4368m",time:"26h"},{d:"50K",climb:"2037m",time:"14h"},{d:"30K",climb:"981m",time:"8h"},{d:"10K",climb:"262m",time:"3h"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/14427", wechat:"希必恩体育" },
+    { name:"2026年第六届大理宾川鸡足山越野跑大赛", date:"2026-08-22", province:"云南", city:"大理州宾川县·鸡足山", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/38897" },
+    { name:"2026上千野·大连广鹿岛月光越野赛", date:"2026-08-22", province:"辽宁", city:"大连市长海县·广鹿岛", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"past", link:"https://reg.zuicool.com/93966" },
+    { name:"2026深圳鲲鹏跑山赛", date:"2026-08-23", province:"广东", city:"深圳市盐田区·梧桐山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/14987" },
+    { name:"2026亚布力天空越野赛", date:"2026-08-30", province:"黑龙江", city:"哈尔滨尚志·亚布力", distances:[{d:"40K"},{d:"22K"},{d:"10K"}], tags:["itra"], status:"past", link:"https://www.ahotu.com/sv/event/yabuli-sky-trail-race" },
+    { name:"2026浑善达克越野赛", date:"2026-08-30", province:"内蒙古", city:"锡林郭勒·浑善达克沙地", distances:[{d:"60K"},{d:"30K"},{d:"15K"}], tags:[], status:"past" },
+    { name:"2026凯乐石东北100松花湖山地跑", date:"2026-09-04", endDate:"2026-09-05", province:"吉林", city:"吉林市·松花湖", distances:[{d:"100K",climb:"5305m",time:"30h"},{d:"55K",climb:"3238m",time:"17h"},{d:"30K",climb:"2019m",time:"10h"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/49091", wechat:"朗途体育" },
+    { name:"2026第十二届五岳寨越野挑战赛", date:"2026-09-06", province:"河北", city:"石家庄市灵寿县·五岳寨", distances:[{d:"47K"},{d:"32K"},{d:"25K"},{d:"8K"}], tags:["itra"], status:"past", link:"https://zuicool.com/event/78630" },
+    { name:"2026百里杜鹃越野跑精英挑战赛", date:"2026-09-06", province:"贵州", city:"毕节市·百里杜鹃", distances:[{d:"19K"},{d:"10K"}], tags:["itra"], status:"past", link:"https://reg.zuicool.com/24763" },
+    { name:"2026京东大境门古长城越野赛 by UTMB", date:"2026-09-11", endDate:"2026-09-13", province:"河北", city:"张家口市桥西区·大境门景区", distances:[{d:"100K",climb:"3800m"},{d:"70K"},{d:"50K"},{d:"30K"}], tags:["utmb","itra"], status:"upcoming", link:"https://dajingmen.utmb.world/zh-Hans/", wechat:"大境门古长城越野赛" },
+    { name:"户外特工·2026第十届武功山越野赛", date:"2026-09-12", endDate:"2026-09-13", province:"江西", city:"萍乡市·武功山", distances:[{d:"100K"},{d:"56K"},{d:"33K"},{d:"13K"}], tags:["itra"], status:"upcoming", link:"http://mtwugong.saihuitong.com", wechat:"武功山越野" },
+    { name:"2026中国移动老牛湾黄河大峡谷100公里越野赛", date:"2026-09-12", endDate:"2026-09-13", province:"内蒙古", city:"呼和浩特市清水河县·老牛湾", distances:[{d:"100K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://lnwyys.xempower.cn/", wechat:"老牛湾越野" },
+    { name:"2026户外特工·山顶见越野赛-大连大黑山站", date:"2026-09-12", province:"辽宁", city:"大连市·大黑山", distances:[{d:"42K"},{d:"21K"},{d:"10K"},{d:"6K"}], tags:[], status:"upcoming", link:"https://www.ahotu.com/zh/event/outdoor-agents-trails-mt-dahei-stop" },
+    { name:"2026传奇首野长白山越野赛", date:"2026-09-13", province:"吉林", city:"白山市抚松县·长白山万达度假区", distances:[{d:"40K"},{d:"25K"},{d:"5K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/34673" },
+    { name:"2026建德楠木林越野赛", date:"2026-09-13", province:"浙江", city:"杭州市建德·寿昌镇", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/18006" },
+    { name:"2026 361°太舞崇礼之巅越野赛", date:"2026-09-13", province:"河北", city:"张家口市崇礼·太舞滑雪小镇", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/83696" },
+    { name:"2026首届ITRA九峰越野跑山赛·武汉站", date:"2026-09-13", province:"湖北", city:"武汉市江夏区·九峰山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/69583" },
+    { name:"2026凯乐石FUGA训练赛·南京站", date:"2026-09-19", province:"江苏", city:"南京市·金陵STYLE", distances:[{d:"25K"},{d:"10K"}], tags:[], status:"upcoming" },
+    { name:"2026超级四梁越野训练赛", date:"2026-09-19", province:"河北", city:"张家口市崇礼·太子城", distances:[{d:"40K"},{d:"20K"},{d:"青少年6K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/19986" },
+    { name:"澜跑·2026贺兰山超级越野赛", date:"2026-09-20", province:"宁夏", city:"银川市·贺兰山", distances:[{d:"80K",climb:"2478m",time:"23h"},{d:"50K",climb:"1203m",time:"12h"},{d:"20K",climb:"562m",time:"7h"},{d:"10K徒步"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/75177", wechat:"SKYLINE天际线越野系列赛" },
+    { name:"2026凯乐石贡嘎100冰川极限挑战赛", date:"2026-09-25", province:"四川", city:"甘孜州泸定县·海螺沟", distances:[{d:"100K",climb:"7025m",time:"30h"},{d:"60K",climb:"5129m",time:"20h"},{d:"40K",climb:"2771m",time:"12h"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/33836", wechat:"朗途体育" },
+    { name:"2026 BLACKYAK·延边100越野赛", date:"2026-09-25", endDate:"2026-09-26", province:"吉林", city:"延边·延吉", distances:[{d:"100K"},{d:"60K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/13214" },
+    { name:"2026「玲珑100」·酷爱临安中秋奔月越野赛", date:"2026-09-26", province:"浙江", city:"杭州市临安区·玲珑山", distances:[{d:"100K"},{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/40614" },
+    { name:"澜跑·2026巴松措超级越野赛", date:"2026-09-26", endDate:"2026-09-27", province:"西藏", city:"林芝市·巴松措", distances:[{d:"100K"},{d:"50K"},{d:"20K"},{d:"10K徒步"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/28732" },
+    { name:"2026金山岭长城越野赛·黄金联赛世界系列赛", date:"2026-09-26", endDate:"2026-09-27", province:"河北", city:"承德市滦平县·金山岭长城", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["golden","itra"], status:"upcoming", link:"https://www.ahotu.com/zh/event/jinshanling-great-wall-trail", wechat:"金山岭长城越野赛" },
+    { name:"2026 Outopia好野姐妹莫干山秋季赛", date:"2026-09-26", endDate:"2026-09-27", province:"浙江", city:"湖州市德清·莫干山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/15294" },
+    { name:"2026大别山菖蒲越野赛", date:"2026-09-27", province:"安徽", city:"安庆市岳西县·菖蒲镇", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/83258" },
+    { name:"2026昆嵛50超级越野赛", date:"2026-09-27", province:"山东", city:"威海市文登区·昆嵛山", distances:[{d:"50K"},{d:"30K"},{d:"10K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/11088", wechat:"昆嵛50" },
+    { name:"霞路相逢·三山五岳2026庐山越野赛", date:"2026-09-27", province:"江西", city:"九江市·庐山·牯岭镇", distances:[{d:"60K"},{d:"40K"},{d:"25K"}], tags:["itra"], status:"upcoming", link:"https://v6.ihuipao.com/race/19vlORY0bkOGmM3a8N4W" },
+    { name:"SKYLINE天际线越野系列赛", date:"2026-10-10", endDate:"2026-10-11", province:"宁夏", city:"石嘴山市·北武当生态旅游区", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", wechat:"SKYLINE天际线越野系列赛" },
+    { name:"2026云丘山越野赛 by UTMB", date:"2026-10-16", endDate:"2026-10-18", province:"山西", city:"临汾市乡宁县·云丘山", distances:[{d:"168K",climb:"6870m",time:"48h"},{d:"100K",climb:"4370m",time:"28h"},{d:"70K",climb:"2600m",time:"18h"},{d:"50K",climb:"2400m",time:"14h"},{d:"20K",climb:"1440m",time:"7h"}], tags:["utmb","itra"], status:"upcoming", link:"https://mount-yun.utmb.world/", wechat:"隆景体育" },
+    { name:"2026南昌梅岭越野赛", date:"2026-10-17", endDate:"2026-10-18", province:"江西", city:"南昌市湾里·梅岭", distances:[{d:"60K",climb:"3132m",time:"15h"},{d:"40K",climb:"2105m",time:"10h"},{d:"20K",climb:"783m",time:"5h"},{d:"10K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/46338", wechat:"阅山河越自由" },
+    { name:"2026蚝运乳山越野挑战赛", date:"2026-10-17", province:"山东", city:"威海市·乳山", distances:[{d:"42K"},{d:"21K"}], tags:[], status:"upcoming" },
+    { name:"2026白云50跑山赛", date:"2026-10-05", province:"广东", city:"广州市白云区", distances:[{d:"22K",climb:"0m",time:"6h"},{d:"0K",climb:"0m",time:"3h"}], tags:[], status:"upcoming" },
+    { name:"思凯乐·2026杭州大宋108越野赛", date:"2026-10-17", endDate:"2026-10-18", province:"浙江", city:"杭州市上城区·吴山广场", distances:[{d:"108K"},{d:"50K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/36164" },
+    { name:"2026 MaXi-Race China江山100越野赛", date:"2026-10-17", endDate:"2026-10-18", province:"浙江", city:"衢州市江山市·江郎山", distances:[{d:"100K"},{d:"60K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/93790" },
+    { name:"2026中国山地越野公开赛（南京站）暨UTO助力首百汤山温泉越野赛", date:"2026-10-17", endDate:"2026-10-18", province:"江苏", city:"南京市·汤山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/12278" },
+    { name:"2026 Outopia山野来赛·虞山站", date:"2026-10-18", province:"江苏", city:"苏州市常熟·虞山", distances:[{d:"30K"},{d:"15K"}], tags:[], status:"upcoming" },
+    { name:"2026环黄泥川·大连越野赛", date:"2026-10-18", province:"辽宁", city:"大连市高新区·黄泥川", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"upcoming", link:"https://reg.zuicool.com/13658" },
+    { name:"2026虎跳峡极限越野赛", date:"2026-10-18", province:"云南", city:"迪庆·香格里拉·虎跳峡", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/92033" },
+    { name:"2026凯乐石莫干山跑山赛", date:"2026-10-23", endDate:"2026-10-25", province:"浙江", city:"湖州市德清县·莫干山镇", distances:[{d:"100K",climb:"5525m"},{d:"70K",climb:"4057m"},{d:"50K",climb:"3012m"},{d:"30K",climb:"1686m"},{d:"20K",climb:"965m"},{d:"10K",climb:"517m"}], tags:["itra"], status:"upcoming", link:"https://www.ahotu.com/zh/event/kailash-moganshan-mountain-running-race", wechat:"朗途体育" },
+    { name:"2026奥尼捷·衢州·灵鹫山168古道越野赛", date:"2026-10-23", endDate:"2026-10-25", province:"浙江", city:"衢州市柯城区·灵鹫山", distances:[{d:"168K",climb:"11864m",time:"50h"},{d:"110K",climb:"8284m",time:"34h"},{d:"60K",climb:"3238m",time:"19h"},{d:"40K",climb:"1832m",time:"11h"},{d:"25K",climb:"1794m",time:"8h"},{d:"15K",climb:"1023m",time:"5h"}], tags:["itra"], status:"upcoming", link:"http://qzrunning.saihuitong.com", wechat:"灵鹫山古道越野赛" },
+    { name:"2026第十二届梅里100极限耐力赛", date:"2026-10-24", endDate:"2026-10-25", province:"云南", city:"迪庆·梅里雪山·飞来寺", distances:[{d:"100K"},{d:"55K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/32706" },
+    { name:"『破云而上』粤西之巅越野赛", date:"2026-10-25", province:"广东", city:"茂名市信宜市", distances:[{d:"60K",climb:"4203m",time:"16h"},{d:"30K",climb:"1593m",time:"8h"},{d:"15K",climb:"775m",time:"4h"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/45459", wechat:"希必恩体育" },
+    { name:"2026柴古唐斯括苍越野赛·第十一届", date:"2026-10-30", endDate:"2026-11-01", province:"浙江", city:"台州市临海市·括苍山", distances:[{d:"100K"},{d:"60K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://tsaigu.com/", wechat:"柴古唐斯" },
+    { name:"2026黄山徽州古城环新安江百公里越野赛", date:"2026-10-31", endDate:"2026-11-01", province:"安徽", city:"黄山市歙县·徽州古城", distances:[{d:"100K",climb:"6300m",time:"30h"},{d:"65K",climb:"3000m",time:"17h"},{d:"40K",climb:"1700m",time:"12h"},{d:"25K",climb:"1000m",time:"7h"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/65809", wechat:"怪兽小太阳" },
+    { name:"MILLET觅乐·2026环玉龙雪山超级越野赛", date:"2026-10-31", endDate:"2026-11-01", province:"云南", city:"丽江市玉龙县·玉湖村", distances:[{d:"100K"},{d:"60K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/12630" },
+    { name:"2026中岳嵩山越野赛（秋季）", date:"2026-10-31", province:"河南", city:"郑州市登封·嵩山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming" },
+    { name:"朱雀50暨四神兽超级越野赛·朱雀站", date:"2026-10-31", province:"山东", city:"烟台市莱山区·竹梦村", distances:[{d:"41K",climb:"2064m",time:"10h"},{d:"30K",climb:"1205m",time:"8h"},{d:"5K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/76528", wechat:"落基体育" },
+    { name:"2026张三丰故里·邵武古道越野赛", date:"2026-11-01", province:"福建", city:"南平市邵武·和平古镇", distances:[{d:"41K"},{d:"32K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://www.ahotu.com/zh/event/zhang-sanfeng-hometown-shaowu-ancient-trail-cross-country-race", wechat:"邵武古道越野赛" },
+    { name:"云端约会2026凯乐石第十一届环四姑娘山超级越野跑", date:"2026-11-04", endDate:"2026-11-07", province:"四川", city:"阿坝州·四姑娘山", distances:[{d:"110K"},{d:"60K"},{d:"35K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/13592", wechat:"深行户外" },
+    { name:"诺诗兰·2026神仙居越野挑战赛", date:"2026-11-07", province:"浙江", city:"台州市仙居县·神仙居", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"upcoming" },
+    { name:"2026澜跑无锡宜兴阳羡100越野挑战赛", date:"2026-11-07", endDate:"2026-11-08", province:"江苏", city:"无锡市宜兴·阳羡生态旅游度假区", distances:[{d:"100K",climb:"5573m",time:"30h"},{d:"50K",climb:"2910m",time:"16h"},{d:"30K",climb:"1867m",time:"9.5h"}], tags:["itra"], status:"upcoming", link:"https://www.ihuipao.com/race/KgZdPzQmJyVN0XNMnoOJ", wechat:"汇跑赛事" },
+    { name:"2026三清山云端越野赛", date:"2026-11-08", province:"江西", city:"上饶市玉山县·三清山", distances:[{d:"40K"},{d:"20K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/13032" },
+    { name:"沿泰越野2026济南超级越野赛", date:"2026-11-08", province:"山东", city:"济南市", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/29300" },
+    { name:"2026广州黄埔越野赛", date:"2026-11-08", province:"广东", city:"广州市黄埔区·长岭", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:[], status:"upcoming", link:"https://reg.zuicool.com/17670" },
+    { name:"2026可隆宁海越野挑战赛", date:"2026-11-13", endDate:"2026-11-15", province:"浙江", city:"宁波市宁海县·西门城楼", distances:[{d:"100K"},{d:"60K"},{d:"25K"}], tags:["itra"], status:"upcoming", link:"https://ninghai100.com/", wechat:"宁海越野挑战赛" },
+    { name:"Ultra-Trail Shudao by UTMB（大蜀道100越野赛）", date:"2026-11-14", endDate:"2026-11-15", province:"四川", city:"广元市剑阁·昭化古城", distances:[{d:"100K",climb:"3800m"},{d:"70K"},{d:"50K"},{d:"20K"}], tags:["utmb","itra"], status:"upcoming", link:"https://shudao.utmb.world/zh-Hans", wechat:"隆景体育" },
+    { name:"2026澜跑无锡宜兴阳羡100越野", date:"2026-11-14", province:"江苏", city:"无锡市宜兴·阳羡", distances:[{d:"100K"},{d:"50K"},{d:"25K"}], tags:["itra"], status:"upcoming" },
+    { name:"2026亚太越野跑锦标赛", date:"2026-11-24", endDate:"2026-11-28", province:"福建", city:"南平市·武夷山", distances:[{d:"50K"},{d:"30K"},{d:"15K"}], tags:["itra"], status:"upcoming" },
+    { name:"漓江越野跑", date:"2026-11-21", endDate:"2026-11-22", province:"广西", city:"桂林市阳朔·兴坪古镇", distances:[{d:"100K",climb:"4917m",time:"30h"},{d:"50K",climb:"2227m",time:"15h"},{d:"20K",climb:"898m",time:"7h"},{d:"10K徒步",time:"7h"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/14689", wechat:"SKYLINE天际线越野系列赛" },
+    { name:"2026贺州姑婆山越野赛", date:"2026-11-28", endDate:"2026-11-29", province:"广西", city:"贺州市·姑婆山旅游度假区", distances:[{d:"100K"},{d:"60K"},{d:"30K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/51987" },
+    { name:"2026第十一届大武夷超级山径赛", date:"2026-11-28", endDate:"2026-11-29", province:"福建", city:"南平市·武夷山", distances:[{d:"100K"},{d:"60K"},{d:"35K"},{d:"15K"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/10518", wechat:"大武夷超级山径赛" },
+    { name:"2026户外特工·山顶见越野赛·桂林永福登云山站", date:"2026-11-08", province:"广西", city:"桂林市永福县·登云山", distances:[{d:"42K"},{d:"21K"},{d:"10K"}], tags:[], status:"upcoming", link:"https://reg.zuicool.com/67588" },
+    { name:"XTERRA太湖越野挑战赛苏州站", date:"2026-12-05", endDate:"2026-12-06", province:"江苏", city:"苏州市吴中区·太湖洞庭山", distances:[{d:"55K",climb:"2946m",time:"13.5h"},{d:"35K",climb:"1860m",time:"10h"},{d:"20K",climb:"910m",time:"5h"},{d:"12K",climb:"615m",time:"3h"},{d:"8K青少年"},{d:"5K亲子"}], tags:["itra"], status:"upcoming", link:"https://reg.zuicool.com/35355", wechat:"XTERRA" },
+    { name:"好运山东·齐鲁越野联赛·第十八届环泰山T60大徒步冬季越野赛", date:"2026-12-05", province:"山东", city:"泰安市·泰山桃花峪", distances:[{d:"60K",climb:"1110m",time:"11h"},{d:"32K",climb:"990m",time:"6.5h"}], tags:["itra"], status:"upcoming", link:"https://zuicool.com/event/21641" },
+    { name:"NORTHLAND诺诗兰2026阳朔100徒步越野赛", date:"2026-12-05", endDate:"2026-12-06", province:"广西", city:"桂林市阳朔", distances:[{d:"110K"},{d:"50K"},{d:"35K"},{d:"10K"}], tags:["itra"], status:"upcoming", link:"https://www.ahotu.com/zh/event/northlang-yangshuo-100-trail-race" },
+    { name:"2026中国山马越野系列赛（山东五莲站）", date:"2026-12-06", province:"山东", city:"日照市·五莲县", distances:[{d:"42K"},{d:"21K"},{d:"10K"}], tags:["itra"], status:"upcoming" },
+    { name:"2026凯乐石北京（怀柔）100越野赛", date:"2026-12-12", province:"北京", city:"北京市怀柔区·雁栖湖", distances:[{d:"100K",climb:"4348m",time:"30h"},{d:"50K"},{d:"35K"},{d:"13K少年"}], tags:["itra"], status:"upcoming", link:"http://moganshan.saihuitong.com/events?mid=65476", wechat:"朗途体育" },
+    { name:"2026澜跑北京越野跑挑战赛（海淀）", date:"2026-12-20", province:"北京", city:"北京市海淀区·大西山", distances:[{d:"100K",climb:"4600m"},{d:"60K"},{d:"25K"},{d:"10K"}], tags:["itra"], status:"upcoming", link:"https://www.ihuipao.com/race/4NeEAkw0Rn5r0v9x3WJM", wechat:"汇跑赛事" },
+    { name:"2026 FUGA深圳100跑山赛", date:"2026-12-25", endDate:"2026-12-27", province:"广东", city:"深圳市盐田区·大梅沙海滨公园大草坪", distances:[{d:"100K",climb:"7190m",time:"30h"},{d:"60K",climb:"4383m",time:"19h"},{d:"35K",climb:"2462m",time:"12h"},{d:"10K",climb:"592m",time:"3.5h"}], tags:["itra"], status:"upcoming", link:"https://www.letoursport.com/events?mid=71522", wechat:"朗途体育" }
+];
+
+// 收集所有唯一省份
+const provinces = [...new Set(races.map(r => r.province))];
+provinces.sort();
+provinces.unshift('全部省份');
+
+const provinceBtns = document.querySelector('.province-nav');
+provinceBtns.innerHTML = '';
+
+const allBtn = document.createElement('button');
+allBtn.className = 'province-btn active';
+allBtn.dataset.province = 'all';
+allBtn.textContent = '全部省份';
+provinceBtns.appendChild(allBtn);
+
+provinces.filter(p => p !== '全部省份').forEach(province => {
+    const btn = document.createElement('button');
+    btn.className = 'province-btn';
+    btn.dataset.province = province;
+    btn.textContent = province;
+    provinceBtns.appendChild(btn);
+});
+
+const monthNames = {
+    1: { name: "一月 January", icon: "❄️" },
+    2: { name: "二月 February", icon: "🧧" },
+    3: { name: "三月 March", icon: "🌱" },
+    4: { name: "四月 April", icon: "🌸" },
+    5: { name: "五月 May", icon: "🌿" },
+    6: { name: "六月 June", icon: "☀️" },
+    7: { name: "七月 July", icon: "🔥" },
+    8: { name: "八月 August", icon: "⛰️" },
+    9: { name: "九月 September", icon: "🍂" },
+    10: { name: "十月 October", icon: "🍁" },
+    11: { name: "十一月 November", icon: "🌫️" },
+    12: { name: "十二月 December", icon: "🎿" },
+};
+
+const today = new Date('2026-09-09');
+
+function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+}
+
+function getStatusFromRace(race) {
+    const raceDate = new Date(race.date);
+    if (raceDate < today) return 'past';
+    return 'upcoming';
+}
+
+function renderRaces(filteredRaces) {
+    const container = document.getElementById('raceContainer');
+    container.innerHTML = '';
+
+    const grouped = {};
+    filteredRaces.forEach(race => {
+        const month = new Date(race.date).getMonth() + 1;
+        if (!grouped[month]) grouped[month] = [];
+        grouped[month].push(race);
+    });
+
+    const sortedMonths = Object.keys(grouped).map(Number).sort((a,b) => a - b);
+
+    if (sortedMonths.length === 0) {
+        document.getElementById('noResults').style.display = 'block';
+        return;
+    }
+    document.getElementById('noResults').style.display = 'none';
+
+    sortedMonths.forEach(month => {
+        const section = document.createElement('div');
+        section.className = 'month-section';
+
+        const mi = monthNames[month];
+        section.innerHTML = `
+            <div class="month-header">
+                <span class="month-icon">${mi.icon}</span>
+                <span class="month-title">${mi.name}</span>
+                <span class="month-count">${grouped[month].length} 场</span>
+            </div>
+        `;
+
+        const grid = document.createElement('div');
+        grid.className = 'race-grid';
+
+        grouped[month].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(race => {
+            const status = getStatusFromRace(race);
+            const card = document.createElement('div');
+            card.className = `race-card ${status === 'past' ? 'past' : ''}`;
+
+            let dateText = formatDate(race.date);
+            if (race.endDate) {
+                dateText += ` - ${formatDate(race.endDate)}`;
+            }
+
+            let tagsHTML = '';
+            if (race.tags.includes('utmb')) tagsHTML += '<span class="tag tag-utmb">UTMB</span>';
+            if (race.tags.includes('golden')) tagsHTML += '<span class="tag tag-golden">黄金联赛</span>';
+            if (race.tags.includes('itra')) tagsHTML += '<span class="tag tag-itra">ITRA</span>';
+
+            let statusTagHTML = '';
+            if (status === 'past') {
+                statusTagHTML = '<span class="tag tag-status-done">已结束</span>';
+            } else if (status === 'upcoming') {
+                statusTagHTML = '<span class="tag tag-status-upcoming">未开始</span>';
+            } else if (status === 'open') {
+                statusTagHTML = '<span class="tag tag-status-open">进行中</span>';
+            } else {
+                statusTagHTML = '<span class="tag tag-status-closed">已关闭</span>';
+            }
+
+            let distHTML = '';
+            if (race.distances && race.distances.length) {
+                const distItems = race.distances.map(d => {
+                    if (typeof d === 'object') {
+                        const parts = [];
+                        if (d.d) parts.push(`🏃${d.d}`);
+                        if (d.climb) parts.push(`⛰️${d.climb}`);
+                        if (d.time) parts.push(`⏱️${d.time}`);
+                        return `<div class="dist-item">${parts.join(' ')}</div>`;
+                    }
+                    return `<div class="dist-item">🏃${d}</div>`;
+                }).join('');
+                distHTML = `<div class="race-meta-item dist-list"><span class="icon">📏</span><div class="dist-col">${distItems}</div></div>`;
+            }
+
+            let linkHTML = '';
+            if (race.link) {
+                linkHTML = `<a href="${race.link}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.8rem;color:var(--red);text-decoration:none;font-weight:700;">查看详情 →</a>`;
+            }
+            let wechatHTML = '';
+            if (race.wechat) {
+                wechatHTML = `<div class="race-wechat"><span class="wechat-icon">💬</span>公众号：<span class="wechat-name">${race.wechat}</span></div>`;
+            }
+
+            card.innerHTML = `
+                ${status === 'past' ? '<span class="past-label">已结束</span>' : ''}
+                <span class="race-date-badge">${dateText}</span>
+                <div class="race-name">
+                    ${race.name}
+                    ${statusTagHTML}
+                </div>
+                <div class="race-meta">
+                    <div class="race-meta-item"><span class="icon">📍</span> ${race.province}·${race.city}</div>
+                    <div class="race-meta-item"><span class="icon">📅</span> ${dateText}</div>
+                    ${distHTML}
+                </div>
+                <div class="race-tags">${tagsHTML}</div>
+                ${wechatHTML}
+                ${linkHTML}
+            `;
+
+            grid.appendChild(card);
+        });
+
+        section.appendChild(grid);
+        container.appendChild(section);
+    });
+}
+
+function updateStats() {
+    document.getElementById('totalCount').textContent = races.length;
+    const provincesSet = new Set(races.map(r => r.province));
+    document.getElementById('provinceCount').textContent = provincesSet.size;
+    const upcoming = races.filter(r => getStatusFromRace(r) === 'upcoming').length;
+    document.getElementById('upcomingCount').textContent = upcoming;
+}
+
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+    const activeMonth = document.querySelector('.month-btn.active').dataset.month;
+    const activeProvince = document.querySelector('.province-btn.active').dataset.province;
+
+    let filtered = races.filter(race => {
+        const distStr = race.distances.map(d => typeof d === 'object' ? d.d : d).join(' ');
+        const searchMatch = !searchTerm ||
+            race.name.toLowerCase().includes(searchTerm) ||
+            race.province.toLowerCase().includes(searchTerm) ||
+            race.city.toLowerCase().includes(searchTerm) ||
+            distStr.toLowerCase().includes(searchTerm);
+
+        if (!searchMatch) return false;
+
+        const status = getStatusFromRace(race);
+
+        switch(activeFilter) {
+            case 'upcoming': return status === 'upcoming';
+            case 'past': return status === 'past';
+            case 'utmb': return race.tags.includes('utmb');
+            case 'golden': return race.tags.includes('golden');
+            case 'itra': return race.tags.includes('itra');
+            case '100k': return race.distances.some(d => parseInt(typeof d === 'object' ? d.d : d) >= 100);
+            default: return true;
+        }
+    });
+
+    if (activeMonth !== 'all') {
+        const m = parseInt(activeMonth);
+        filtered = filtered.filter(race => {
+            const raceMonth = new Date(race.date).getMonth() + 1;
+            return raceMonth === m;
+        });
+    }
+
+    if (activeProvince !== 'all') {
+        filtered = filtered.filter(race => race.province === activeProvince);
+    }
+
+    renderRaces(filtered);
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        applyFilters();
+    });
+});
+
+document.querySelectorAll('.month-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        applyFilters();
+    });
+});
+
+document.querySelectorAll('.province-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.province-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        applyFilters();
+    });
+});
+
+updateStats();
+applyFilters();
+</script>
+
+<button id="backToTop" title="返回顶部">↑</button>
+
+<script>
+var btn = document.getElementById('backToTop');
+if (btn) {
+    btn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+</script>
+
+</body>
+</html>
