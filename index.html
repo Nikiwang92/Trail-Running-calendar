@@ -603,6 +603,16 @@
             color: var(--white);
         }
 
+        .tag-reg-open {
+            background: #2E7D32;
+            color: var(--white);
+        }
+
+        .tag-reg-closed {
+            background: #9E9E9E;
+            color: var(--white);
+        }
+
         .race-card.cancelled {
             opacity: 0.55;
         }
@@ -1053,6 +1063,19 @@ function renderRaces(filteredRaces) {
                 wechatHTML = `<div class="race-wechat"><span class="wechat-icon">💬</span>公众号：<span class="wechat-name">${race.wechat}</span></div>`;
             }
 
+            // 报名截止（来自列表卡片；未过截止时间 → 报名中）
+            let regHTML = '';
+            if (race.regDeadline) {
+                const dl = new Date(race.regDeadline.replace(' ', 'T'));
+                if (!isNaN(dl)) {
+                    const open = dl >= today;
+                    const pad = n => String(n).padStart(2, '0');
+                    const dlText = `${dl.getMonth() + 1}月${dl.getDate()}日 ${pad(dl.getHours())}:${pad(dl.getMinutes())}`;
+                    regHTML = `<div class="race-meta-item"><span class="icon">📝</span> 报名截止：${dlText} `
+                        + `<span class="tag ${open ? 'tag-reg-open' : 'tag-reg-closed'}">${open ? '报名中' : '已截止'}</span></div>`;
+                }
+            }
+
             card.innerHTML = `
                 ${status === 'past' ? '<span class="past-label">已结束</span>' : ''}
                 <span class="race-date-badge">${dateText}</span>
@@ -1063,6 +1086,7 @@ function renderRaces(filteredRaces) {
                 <div class="race-meta">
                     <div class="race-meta-item"><span class="icon">📍</span> ${race.province}·${race.city}</div>
                     <div class="race-meta-item"><span class="icon">📅</span> ${dateText}</div>
+                    ${regHTML}
                     ${distHTML}
                 </div>
                 <div class="race-tags">${tagsHTML}</div>

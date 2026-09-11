@@ -49,7 +49,7 @@ def parse_races_text(src):
         nm = _str_field('name')
         if nm:
             r['name'] = nm
-        for key in ('date', 'endDate', 'province', 'city', 'status', 'link', 'wechat', 'official'):
+        for key in ('date', 'endDate', 'province', 'city', 'status', 'link', 'wechat', 'official', 'regDeadline'):
             v = _str_field(key)
             if v is not None:
                 r[key] = v
@@ -364,6 +364,8 @@ def serialize_new(r):
         parts.append(f"wechat:{json.dumps(r['wechat'], ensure_ascii=False)}")
     if r.get('official'):
         parts.append(f"official:{json.dumps(r['official'], ensure_ascii=False)}")
+    if r.get('reg_deadline'):
+        parts.append(f"regDeadline:{json.dumps(r['reg_deadline'], ensure_ascii=False)}")
     return '  { ' + ', '.join(parts) + ' }'
 
 
@@ -583,6 +585,38 @@ def sync_region_province(existing, crawled, src):
     return new_src, changed
 
 
+def sync_reg_deadline(existing, crawled, src):
+    """把列表卡片上的"报名截止"同步到已有条目（新增/更新/删除）。
+    该字段来自列表卡片，不依赖详情页，因此每天都能拿到最新值。"""
+    by_key = {}
+    for plat, races in crawled.items():
+        for r in races:
+            k = link_key(r.get('link', ''))
+            if k:
+                by_key[k] = r
+    new_src = src
+    changed = 0
+    for e in existing:
+        cr = by_key.get(link_key(e.get('link', '')))
+        if cr is None:
+            continue
+        newval = cr.get('reg_deadline') or ''
+        if newval == (e.get('regDeadline') or ''):
+            continue
+        raw = e['_raw']
+        if 'regDeadline:"' in raw:
+            new_raw = re.sub(r'regDeadline:"((?:[^"\\]|\\.)*)"',
+                             'regDeadline:' + json.dumps(newval, ensure_ascii=False), raw, count=1)
+        elif newval:
+            new_raw = re.sub(r'status:"', 'regDeadline:' + json.dumps(newval, ensure_ascii=False) + ', status:"', raw, count=1)
+        else:
+            continue
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            changed += 1
+    return new_src, changed
+
+
 def merge_existing_distances(existing, crawled, src):
     """对每条 existing race，如果 crawled 找到匹配（同 link 或 同 name_norm+date），
     把 crawled 的 distances 字段（特别是 climb/time）补全到 existing。
@@ -712,6 +746,11 @@ def main():
     new_src, region_fixed = sync_region_province(existing, crawled, new_src)
     if region_fixed:
         print(f'[merge] 修正港澳台归属 {region_fixed} 场')
+
+    # 1.3 同步"报名截止"（来自列表卡片）
+    new_src, dl_fixed = sync_reg_deadline(existing, crawled, new_src)
+    if dl_fixed:
+        print(f'[merge] 同步报名截止 {dl_fixed} 场')
 
     # 1.5 补全已有赛事的 distances（climb/time）— 用 crawled 匹配更新
     new_src, fields_updated = merge_existing_distances(existing, crawled, new_src)

@@ -112,7 +112,8 @@ F:\RUN\
   status:"past"|"upcoming"|"cancelled",
   link:"https://zuicool.com/event/98816",   // 可选
   wechat:"大境门古长城越野赛",               // 可选
-  official:"dajingmen.utmb.world" }          // 可选，官网域名（跨平台去重键）
+  official:"dajingmen.utmb.world",           // 可选，官网域名（跨平台去重键）
+  regDeadline:"2026-02-28 23:59" }          // 可选，报名截止（来自列表卡片）
 ```
 
 文件格式：`module.exports = [\n  { ... },\n  { ... }\n];`，每条**一行**，2 空格缩进。
@@ -134,7 +135,8 @@ CRAWLERS = [('zuicool','zuicool'), ('utmb','utmb')]
 每天**全量抓列表页**（~0.4 MB / 10 秒，很便宜），但**只对"有变化"的赛事抓详情页**。
 
 **① 列表页** `list_page(page, where='')` — `https://zuicool.com/events?type=trail-run[&where=X]&page=N`
-- 每页 100 条，解析 `div.event-body` 卡片 → `{id, url, name, date, city, raw}`
+- 每页 100 条，解析 `div.event-body` 卡片 → `{id, url, name, date, city, raw, reg_deadline}`
+- `reg_deadline`：卡片上就印着"报名截止：02-28 23:59"，**无需进详情**；年份按赛事日期推断（月日早于赛事的算上一年）
 - `raw` = 卡片完整文本，用作**变更指纹**（含副标题如"改档九月，新增70KM组"、报名截止、报名状态）
 - 地区：`REGIONS = [('', 大陆), ('hkgmac', 港澳台), ('overseas', 海外)]`
   - 同一赛事可能同时出现在多个列表 → 按 id 去重，**港澳台/海外优先于大陆**（修正归类）
@@ -196,6 +198,7 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 0 | 跨平台去重 | `drop_claimed_duplicates` | `official` 域名"认领"（来自 zuicool 输出 **∪ 现有 `_race_data`**）后，独立的 utmb 英文条目删除 |
 | 1 | 重算 status | `auto_recalc_status` | 只改 status 字段 |
 | 1.2 | 修正港澳台归属 | `sync_region_province` | 已有条目若被识别为港澳台（爬虫 province 为港澳台、现有不是）→ 改 province/city |
+| 1.3 | 同步报名截止 | `sync_reg_deadline` | 把列表卡片上的"报名截止"写入/更新到已有条目 |
 | 1.5 | 补全组别 | `merge_existing_distances` | 用官方组别覆盖脏数据；**只有 zuicool 平台允许覆盖**，其余平台仅在空时补 |
 | 2 | 检测取消 | `detect_missing` + `mark_cancelled` | 连续 **14 天**所有平台没抓到 → `status:"cancelled"`（不删条目），进度存 `crawl/MISSING_LOG.json`。**按"天"累加**（同日多次运行算 1 天）；**已过去的赛事**和**非 zuicool 来源**的赛事不参与统计 |
 | 3 | 新增赛事 | `detect_new` + `insert_new_races` | 追加到 `];` 之前；`serialize_new()` 序列化 |
@@ -258,7 +261,7 @@ CANCEL_THRESHOLD_DAYS = 14
   - **省份行**：全部省份 / 各省 —— 单选，大陆按赛事数降序，**港澳台/海外排最后**
   - 规则：每行都有「全部」；**行内**状态单选、标签多选；**行间**叠加（与）
 - `getStatusFromRace()` 前端也判一次状态，并优先返回 `cancelled`
-- 卡片按月份分组，组别降序展示
+- 卡片按月份分组，组别降序展示；卡片显示**报名截止**时间 + `报名中`/`已截止` 徽标（按 `today` 实时判断）
 
 ---
 

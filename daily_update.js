@@ -60,6 +60,7 @@ function serializeRace(race, indent) {
     if (race.link) parts.push(`link:${JSON.stringify(race.link)}`);
     if (race.wechat) parts.push(`wechat:${JSON.stringify(race.wechat)}`);
     if (race.official) parts.push(`official:${JSON.stringify(race.official)}`);
+    if (race.regDeadline) parts.push(`regDeadline:${JSON.stringify(race.regDeadline)}`);
     return `${indent}{ ${parts.join(', ')} }`;
 }
 

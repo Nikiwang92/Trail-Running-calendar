@@ -3,7 +3,7 @@
 # 列表页：https://reg.zuicool.com/?race_type_id=10 翻页
 # 详情页：https://reg.zuicool.com/{id}
 import sys, re, json, os, time, hashlib
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -77,8 +77,21 @@ def list_page(page, session, where=''):
                 tail = re.sub(r'报名截止.*$', '', tail).strip()
                 city = tail.split('报名')[0].strip()
         raw = body.get_text(' ', strip=True)
+        # 报名截止：卡片上就有（"报名截止：02-28 23:59"），无需进详情页
+        # 只给到"月-日 时:分"，按赛事日期推断年份（早于赛事的截止一般在去年）
+        deadline = None
+        dm2 = re.search(r'报名截止[：:]\s*(\d{1,2})-(\d{1,2})\s*(\d{1,2}):(\d{2})', raw)
+        if dm2:
+            mo, dd, hh, mi = (int(x) for x in dm2.groups())
+            if date:
+                ry, rmo, rdd = int(date[:4]), int(date[5:7]), int(date[8:10])
+                y = ry if (mo, dd) <= (rmo, rdd) else ry - 1
+            else:
+                y = datetime.now().year
+            deadline = f'{y}-{mo:02d}-{dd:02d} {hh:02d}:{mi}'
         items.append({'id': rid, 'url': f'https://zuicool.com/event/{rid}',
-                      'name': name, 'date': date, 'city': city, 'raw': raw})
+                      'name': name, 'date': date, 'city': city, 'raw': raw,
+                      'reg_deadline': deadline})
     seen, uniq = set(), []
     for it in items:
         if it['id'] not in seen:
@@ -517,6 +530,7 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
             'link': it['url'],
             'wechat': info.get('wechat'),
             'official': info.get('official'),
+            'reg_deadline': it.get('reg_deadline'),
             'raw': {'fetched': rid in fetched},
         })
 
