@@ -51,7 +51,7 @@ Data comes from public pages and is for reference only — **always check the of
 
 ## Daily updates (automatic)
 
-Nothing for you to do — it runs every day at 00:00 Beijing time:
+Nothing for you to do — it runs every day at 03:00 Beijing time:
 
 1. **Crawl** (~1.5 min) — scans the full race list every day, and only fetches detail pages for **new** or **changed** races; a full refresh happens every 15 days
 2. **Merge** — dedupes, fills in categories, recalculates status; backs up before every update
