@@ -62,3 +62,18 @@ jobs:
             git commit -m "chore(daily): update races for $(date -u +%Y-%m-%d)"
             git push
           fi
+
+      - name: 提示网页地址
+        if: always()
+        run: |
+          OWNER=$(echo "${GITHUB_REPOSITORY%%/*}" | tr '[:upper:]' '[:lower:]')
+          REPO=${GITHUB_REPOSITORY##*/}
+          URL="https://${OWNER}.github.io/${REPO}/"
+          echo "::notice title=网页地址::$URL"
+          {
+            echo "## 🌐 网页地址"
+            echo ""
+            echo "$URL"
+            echo ""
+            echo "> 打不开就表示 Pages 还没开启：仓库 Settings → Pages → Source 选 \`Deploy from a branch\`，Branch 选 \`main\` + \`/ (root)\`。"
+          } >> "$GITHUB_STEP_SUMMARY"

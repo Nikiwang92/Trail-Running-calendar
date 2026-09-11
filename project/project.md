@@ -302,6 +302,7 @@ Checkout → Node20 → Python3.11 → pip install -r requirements.txt
 → python scripts/merge_all.py   (continue-on-error)
 → node daily_update.js
 → git add -A && commit && push
+→ 提示网页地址（把 Pages URL 写进 Actions 的 notice + Job Summary，方便知道去哪看）
 ```
 `continue-on-error` 保证单平台失败不阻塞整条流水线；`timeout-minutes: 90`；`concurrency: daily-update` 防并发互踩。
 
