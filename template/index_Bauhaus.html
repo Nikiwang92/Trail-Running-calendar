@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全国山地越野赛事日历 — Bauhaus</title>
+    <title>2026 年全国山地越野赛事日历 — Bauhaus</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap');
 
@@ -240,59 +240,6 @@
             background: var(--red);
             color: var(--white);
             box-shadow: var(--shadow-sm);
-        }
-
-        .filter-nav {
-            display: flex;
-            gap: 8px;
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            align-items: center;
-            padding: 0 0 14px;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .filter-nav .filter-btn {
-            flex: 0 0 auto;
-        }
-
-        .year-nav {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            align-items: center;
-            padding: 0 0 12px;
-        }
-
-        .year-btn {
-            min-width: 60px;
-            padding: 9px 14px;
-            border-radius: 0;
-            border: 3px solid var(--border);
-            background: var(--white);
-            color: var(--fg);
-            cursor: pointer;
-            font-size: 0.82rem;
-            font-weight: 900;
-            letter-spacing: 0.04em;
-            transition: all 0.2s ease-out;
-            box-shadow: var(--shadow-sm);
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .year-btn:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .year-btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: none;
-        }
-
-        .year-btn.active {
-            background: var(--yellow);
-            color: var(--fg);
         }
 
         .month-nav {
@@ -598,19 +545,6 @@
             color: var(--white);
         }
 
-        .tag-status-cancelled {
-            background: #888;
-            color: var(--white);
-        }
-
-        .race-card.cancelled {
-            opacity: 0.55;
-        }
-
-        .race-card.cancelled::after {
-            background: #888;
-        }
-
         .tag-status-upcoming {
             background: var(--red);
             color: var(--white);
@@ -759,7 +693,7 @@
 
 <div class="hero">
     <div class="geo-deco tri"></div>
-    <h1>全国山地越野<br><span class="accent">赛事日历</span></h1>
+    <h1>2026 全国山地越野<br><span class="accent">赛事日历</span></h1>
     <p>Trail Running Events in China 2026</p>
     <div class="stats-bar">
         <div class="stat-item">
@@ -780,24 +714,16 @@
 <div class="container">
     <div class="sticky-nav">
     <div class="toolbar">
-        <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...（回车确认）">
-    </div>
-    <div class="filter-nav" data-group="status">
+        <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...">
         <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="upcoming">未开始</button>
         <button class="filter-btn" data-filter="past">已结束</button>
-    </div>
-    <div class="filter-nav" data-group="tag">
-        <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="utmb">UTMB</button>
         <button class="filter-btn" data-filter="golden">黄金联赛</button>
         <button class="filter-btn" data-filter="itra">ITRA</button>
         <button class="filter-btn" data-filter="youth">青少年</button>
         <button class="filter-btn" data-filter="training">训练赛</button>
         <button class="filter-btn" data-filter="100k">100K+</button>
-    </div>
-    <div class="year-nav">
-        <button class="year-btn active" data-year="all">全部</button>
     </div>
     <div class="month-nav">
         <button class="month-btn active" data-month="all">全部</button>
@@ -873,7 +799,7 @@
 </div>
 
 <footer>
-    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月11日</p>
+    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月10日</p>
     <p style="margin-top:8px;">部分赛事日期和报名信息可能调整，请以各赛事官方公告为准</p>
 </footer>
 
@@ -885,13 +811,10 @@ var module = {exports: {}};
 <script>
 const races = module.exports;
 
-// 收集所有唯一省份：大陆省份按赛事数降序；港澳台/海外 统一排到最后
-const HKMT = ['香港', '澳门', '台湾', '海外'];
+// 收集所有唯一省份，按赛事数从多到少排序（相同时按省份名升序）
 const provinceCounts = {};
 races.forEach(r => { if (r.province) provinceCounts[r.province] = (provinceCounts[r.province] || 0) + 1; });
 const provinces = Object.keys(provinceCounts).sort((a, b) => {
-    const ah = HKMT.includes(a), bh = HKMT.includes(b);
-    if (ah !== bh) return ah ? 1 : -1;
     if (provinceCounts[b] !== provinceCounts[a]) return provinceCounts[b] - provinceCounts[a];
     return a.localeCompare(b, 'zh-CN');
 });
@@ -914,23 +837,6 @@ provinces.filter(p => p !== '全部省份').forEach(province => {
     provinceBtns.appendChild(btn);
 });
 
-// 年份筛选：从数据里取所有年份，升序（全部 + 2026 + 2027 …）
-const years = [...new Set(races.map(r => (r.date || '').slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort();
-const yearNav = document.querySelector('.year-nav');
-yearNav.innerHTML = '';
-const yearAll = document.createElement('button');
-yearAll.className = 'year-btn active';
-yearAll.dataset.year = 'all';
-yearAll.textContent = '全部';
-yearNav.appendChild(yearAll);
-years.forEach(y => {
-    const b = document.createElement('button');
-    b.className = 'year-btn';
-    b.dataset.year = y;
-    b.textContent = y;
-    yearNav.appendChild(b);
-});
-
 const monthNames = {
     1: { name: "一月 January", icon: "❄️" },
     2: { name: "二月 February", icon: "🧧" },
@@ -946,7 +852,7 @@ const monthNames = {
     12: { name: "十二月 December", icon: "🎿" },
 };
 
-const today = new Date('2026-09-11');
+const today = new Date('2026-09-10');
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -954,7 +860,6 @@ function formatDate(dateStr) {
 }
 
 function getStatusFromRace(race) {
-    if (race.status === 'cancelled') return 'cancelled';
     const raceDate = new Date(race.date);
     if (raceDate < today) return 'past';
     return 'upcoming';
@@ -998,7 +903,7 @@ function renderRaces(filteredRaces) {
         grouped[month].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(race => {
             const status = getStatusFromRace(race);
             const card = document.createElement('div');
-            card.className = `race-card ${status === 'past' ? 'past' : ''} ${status === 'cancelled' ? 'cancelled' : ''}`;
+            card.className = `race-card ${status === 'past' ? 'past' : ''}`;
 
             let dateText = formatDate(race.date);
             if (race.endDate) {
@@ -1013,8 +918,6 @@ function renderRaces(filteredRaces) {
             let statusTagHTML = '';
             if (status === 'past') {
                 statusTagHTML = '<span class="tag tag-status-done">已结束</span>';
-            } else if (status === 'cancelled') {
-                statusTagHTML = '<span class="tag tag-status-cancelled">已取消</span>';
             } else if (status === 'upcoming') {
                 statusTagHTML = '<span class="tag tag-status-upcoming">未开始</span>';
             } else if (status === 'open') {
@@ -1086,54 +989,43 @@ function updateStats() {
     document.getElementById('upcomingCount').textContent = upcoming;
 }
 
-function groupActive(group) {
-    const nav = document.querySelector(`.filter-nav[data-group="${group}"]`);
-    return [...nav.querySelectorAll('.filter-btn.active')].map(b => b.dataset.filter);
-}
-
 function applyFilters() {
-    const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase().trim();
-    // 状态行：单选，值 ∈ {all, upcoming, past}
-    const statusVal = groupActive('status')[0] || 'all';
-    // 标签行：多选，"全部" 时视为无标签限制
-    const tagSel = groupActive('tag').filter(f => f !== 'all');
-    const activeYear = document.querySelector('.year-btn.active').dataset.year;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
     const activeMonth = document.querySelector('.month-btn.active').dataset.month;
     const activeProvince = document.querySelector('.province-btn.active').dataset.province;
 
     let filtered = races.filter(race => {
-        const name = (race.name || '').toLowerCase();
-        const province = (race.province || '').toLowerCase();
-        const city = (race.city || '').toLowerCase();
-        const dists = race.distances || [];
-        const tags = race.tags || [];
-        const distStr = dists.map(d => (typeof d === 'object' ? d.d : d)).join(' ').toLowerCase();
+        const distStr = race.distances.map(d => typeof d === 'object' ? d.d : d).join(' ');
+        const searchMatch = !searchTerm ||
+            race.name.toLowerCase().includes(searchTerm) ||
+            race.province.toLowerCase().includes(searchTerm) ||
+            race.city.toLowerCase().includes(searchTerm) ||
+            distStr.toLowerCase().includes(searchTerm);
 
-        if (searchTerm &&
-            !(name.includes(searchTerm) || province.includes(searchTerm) ||
-              city.includes(searchTerm) || distStr.includes(searchTerm))) {
-            return false;
+        if (!searchMatch) return false;
+
+        const status = getStatusFromRace(race);
+
+        switch(activeFilter) {
+            case 'upcoming': return status === 'upcoming';
+            case 'past': return status === 'past';
+            case 'utmb': return race.tags.includes('utmb');
+            case 'golden': return race.tags.includes('golden');
+            case 'itra': return race.tags.includes('itra');
+            case 'youth': return race.tags.includes('youth');
+            case 'training': return race.tags.includes('training');
+            case '100k': return race.distances.some(d => parseInt(typeof d === 'object' ? d.d : d) >= 100);
+            default: return true;
         }
-
-        if (statusVal !== 'all' && getStatusFromRace(race) !== statusVal) return false;
-
-        if (tagSel.length) {
-            const ok = tagSel.some(f => {
-                if (f === '100k') return dists.some(d => (parseInt(typeof d === 'object' ? d.d : d) || 0) >= 100);
-                return tags.includes(f);
-            });
-            if (!ok) return false;
-        }
-        return true;
     });
-
-    if (activeYear !== 'all') {
-        filtered = filtered.filter(race => (race.date || '').startsWith(activeYear));
-    }
 
     if (activeMonth !== 'all') {
         const m = parseInt(activeMonth);
-        filtered = filtered.filter(race => (new Date(race.date).getMonth() + 1) === m);
+        filtered = filtered.filter(race => {
+            const raceMonth = new Date(race.date).getMonth() + 1;
+            return raceMonth === m;
+        });
     }
 
     if (activeProvince !== 'all') {
@@ -1143,40 +1035,11 @@ function applyFilters() {
     renderRaces(filtered);
 }
 
-const searchInput = document.getElementById('searchInput');
-searchInput.addEventListener('input', applyFilters);
-searchInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') { e.preventDefault(); applyFilters(); }
-});
+document.getElementById('searchInput').addEventListener('input', applyFilters);
 
-// 每行独立：状态行单选，标签行多选；每行都有“全部”，选“全部”即该行只保留全部
-document.querySelectorAll('.filter-nav').forEach(nav => {
-    const single = nav.dataset.group === 'status';
-    const allBtn = nav.querySelector('.filter-btn[data-filter="all"]');
-    nav.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            const f = this.dataset.filter;
-            if (single) {
-                // 单选：清掉本行其他，只留自己
-                nav.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            } else if (f === 'all') {
-                nav.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            } else {
-                if (allBtn) allBtn.classList.remove('active');
-                this.classList.toggle('active');
-                // 一个标签都没选 → 回到“全部”
-                if (!nav.querySelector('.filter-btn.active') && allBtn) allBtn.classList.add('active');
-            }
-            applyFilters();
-        });
-    });
-});
-
-document.querySelectorAll('.year-btn').forEach(btn => {
+document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         applyFilters();
     });

@@ -1,100 +1,168 @@
-# 2026 中国山地越野赛事日历
+# 中国越野赛事日历 🏃⛰️
 
-2026 年中国越野跑赛事清单，按月份/省份/标签筛选，支持搜索与"已结束/未开始"状态展示。
+一个**每天自动更新**的全国越野跑赛事日历。自动从多个平台抓取赛事，汇总成一张可搜索、可筛选的网页。
 
-👉 **公开页面**：https://<your-username>.github.io/<repo-name>/
+> 数据每日 00:00（北京时间）自动刷新，无需人工维护。
 
-数据源：最酷、搜狐赛事日历、Ahotu、UTMB 官方、跑IN 中国等平台。
+📁 想看**详细项目结构 / 内部流程**？ → [`project/project.md`](./project/project.md)
 
-## 项目结构
+![预览](docs/preview.png)
 
-```
-├── index.html              # GitHub Pages 部署的主页面（Bauhaus 风格）
-├── _race_data.js           # 权威赛事数据源（CommonJS module）
-├── check_status.js         # 状态校验脚本（已结束/未开始）
-├── scripts/
-│   └── daily_update.js     # 每日自动跑：刷新 today 日期 + 重算 status + 同步 HTML
-├── .github/workflows/
-│   └── daily.yml           # 每天北京时间 00:00 跑一次 daily_update.js
-├── preview/                # 其他设计风格版本（Industrial/Cyberpunk/Vaporwave 等）
-├── prompt/                 # 各设计系统模板（prompt_*.txt）
-├── 越野赛事爬虫.py 等        # Python 爬虫（手动运行）
-└── CLAUDE.md               # 项目说明
-```
+*[English →](./README.en.md)*
 
-## 每日自动更新
+---
 
-`.github/workflows/daily.yml` 配置 GitHub Actions：
+## 这是什么
 
-- 触发时间：每天 **UTC 16:00**（北京时间 00:00）
-- 任务流程：
-  1. 跑 `scripts/daily_update.js`：
-     - 取当天日期
-     - 重算 `_race_data.js` 中所有赛事状态（`endDate||date < today` → `past`）
-     - 同步刷新 `index.html`：`const today`、`const races = [...]`、页脚"更新时间"
-     - 校验 HTML 内嵌脚本语法
-  2. 自动 commit 并 push 到 main 分支
-  3. GitHub Pages 自动重新部署
+把散落在最酷、UTMB、赛会通等平台的越野赛事，聚合成**一份**带日期、地点、组别、爬升、关门时间、认证标签（UTMB / 黄金联赛 / ITRA / 青少年 / 训练赛）的清单，并按月份排成日历。
 
-也可在 GitHub Actions 页面手动点 **Run workflow** 立即触发。
+目前收录 **840+ 场** 2026 年赛事，覆盖 29 个省份。
 
-## 本地运行
+---
 
+## 在线访问
+
+🌐 **https://nikiwang92.github.io/Trail-Running-calendar/**
+
+> 首次使用需在仓库 `Settings → Pages` 里把 Source 设为 `main` 分支根目录（见下方 [Fork 指南](#fork-成你自己的日历)）。
+
+---
+
+## 功能
+
+- 🔍 **搜索**：按赛事名称、地点、组别搜索（如输入 `100K`、`灵鹫山`、`北京`）
+- 🏷️ **标签筛选**：UTMB / 黄金联赛 / ITRA / 青少年 / 训练赛 / 100K+ （可多选叠加）
+- 📅 **状态 & 月份 & 省份筛选**：未开始 / 已结束、按月、按省
+- 📊 **赛事详情**：每场显示所有官方组别及对应爬升、关门时长、公众号、报名链接
+- 📱 **响应式**：手机 / 平板 / 桌面自适应
+
+---
+
+## 数据来源
+
+| 平台 | 说明 |
+|---|---|
+| [最酷 zuicool](https://zuicool.com) | 主力来源，覆盖约 95% |
+| [UTMB World Series](https://www.utmb.world) | UTMB 世界系列赛中国站 |
+
+数据来自各平台公开页面，仅供参考，**请以赛事官方公告为准**。
+
+---
+
+## 每日更新（自动）
+
+不需要你操作，每天北京时间 00:00 自动跑一遍：
+
+1. **抓取**（约 1.5 分钟）—— 先扫一遍全部赛事列表，只对**新增**和**有变动**的赛事抓详情页；每 15 天做一次全量兜底
+2. **合并** —— 去重、补全组别、重算状态；更新前自动备份
+3. **发布** —— 提交并重新部署网页
+
+想看是否正常：`你的仓库 → Actions → Daily Update`（绿勾即正常）。
+
+---
+
+## 本地预览
+
+无需安装任何依赖，直接双击打开 `index.html` 即可（数据通过 `<script src>` 加载，`file://` 下可用）。
+
+想改数据或跑爬虫，见下方调试章节。
+
+---
+
+## Fork 成你自己的日历
+
+想要一个属于自己（或自己地区）的版本？按以下步骤：
+
+### 1. Fork 仓库
+点本页右上角 **Fork**，得到 `你的用户名/Trail-Running-calendar`。
+
+### 2. 开启自动更新（GitHub Actions）
+- 进入 `你的仓库 → Actions`
+- 若提示 "Workflows aren't being run on this forked repository"，点 **I understand my workflows, go ahead and enable them**
+- 之后每天 UTC 16:00（北京 00:00）会自动抓取并提交
+
+### 3. 开启网页托管（GitHub Pages）
+- `Settings → Pages`
+- **Source** 选 `Deploy from a branch`
+- **Branch** 选 `main` + `/ (root)` → Save
+- 几分钟后访问 `https://你的用户名.github.io/Trail-Running-calendar/`
+
+### 4. 授权 Actions 提交（如遇权限报错）
+- `Settings → Actions → General → Workflow permissions`
+- 选 **Read and write permissions** → Save
+
+### 5. 想改成只保留某个地区 / 某个类型？
+- **只留某个省份**：改 `crawlers/zuicool.py` 的 `crawl(year_filter=...)` 附近，或在 `scripts/merge_all.py` 里加过滤
+- **换年份**：全局搜 `2026`，改成目标年份
+- **换配色**：改 `index.html` 顶部的 CSS 变量 `--red / --blue / --yellow` 等
+
+---
+
+## 调试指南
+
+### 数据没更新？
+1. 打开 `你的仓库 → Actions → Daily Update`，看最近一次是否成功
+2. 失败常见原因：
+   - 没开 Actions 写权限 → 见上方 Fork 第 4 步
+   - 爬虫被目标站点限流 / 改版 → 看日志里 `[zuicool]` 的翻页输出
+3. **手动触发一次**：`Actions → Daily Update → Run workflow`
+
+### 本地跑整条链路
 ```bash
-# 校验赛事状态
-node check_status.js
+# 1) 抓取（增量：只抓新增/有变动的，约 1–2 分钟）
+python crawlers/zuicool.py
+#    想强制全量详情（800+ 页，15–40 分钟）：
+python crawlers/zuicool.py --full
 
-# 手动跑一次每日更新（用今天日期）
-node scripts/daily_update.js
+# 2) 合并爬虫结果 → _race_data.js
+python scripts/merge_all.py
 
-# 浏览器打开
-start index.html   # Windows
-open index.html    # macOS
+# 3) 重算状态 + 刷新 index.html
+node daily_update.js
+
+# 4) 浏览器打开 index.html 预览
 ```
+> Windows 本地跑 Python 前先设 `PYTHONIOENCODING=utf-8`，否则控制台 GBK 编码会报错。
 
-## 发布到 GitHub Pages（一次性配置）
+### 某平台抓不到数据？
+- 看爬虫产出的 `crawl/output/{平台}.json` 的 `count`
+- 看 `crawl/REPORT_<日期>.md`（合并报告）
+- 想精确排查某场赛事：
+  ```bash
+  python -c "import sys; sys.path.insert(0,'crawlers'); import zuicool as z; \
+  print(z.parse_detail(z.fetch('https://zuicool.com/event/98816')))"
+  ```
 
-1. 在 GitHub 新建 public 仓库
-2. 推送代码：
+### 页面搜索 / 筛选没反应？
+1. 浏览器按 `F12` 打开 Console 看有没有红色报错
+2. 常见原因：`_race_data.js` 里某条数据字段缺失（如 `city` 为空），导致脚本抛错
+3. 校验数据文件语法：
    ```bash
-   git init
-   git add .
-   git commit -m "init: 2026 越野赛日历"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/<repo-name>.git
-   git push -u origin main
+   node -e "require('./_race_data.js'); console.log('数据 OK')"
    ```
-3. 仓库 → **Settings** → **Pages**：
-   - Source: **Deploy from a branch**
-   - Branch: **main** / **/ (root)**
-   - 保存
-4. 等 1-2 分钟，访问 `https://<your-username>.github.io/<repo-name>/`
+4. 校验页面脚本：
+   ```bash
+   node daily_update.js    # 末尾会打印 index.html JS 语法是否 OK
+   ```
 
-## 数据字段说明
+### 想改完立即看效果
+本地双击 `index.html` 刷新即可，无需构建、无需起服务。
 
-每条赛事：
+---
 
-```js
-{
-  name: "赛事名称",
-  date: "2026-09-15",          // 必填，开始日期
-  endDate: "2026-09-17",       // 可选，多日赛事结束日期
-  province: "省份",
-  city: "城市·具体地点",
-  distances: [
-    { d: "100K", climb: "5500m", time: "30h" },  // 距离/爬升/关门时间，未知则省略
-  ],
-  tags: ["utmb" | "golden" | "itra"],   // 可组合
-  status: "past" | "upcoming",          // 每日自动重算
-  link: "https://...",                  // 报名链接
-  wechat: "公众号名",                    // 可选
-}
-```
+## 技术栈
 
-## 手动添加新赛事
+- **数据抓取**：Python 3 + requests + BeautifulSoup
+- **数据存储**：单个 CommonJS 文件 `_race_data.js`
+- **前端**：原生 HTML / CSS / JavaScript（零依赖、零构建）
+- **自动化**：GitHub Actions + GitHub Pages
 
-1. 编辑 `_race_data.js`，在合适月份下加一条赛事（注意 `status` 默认 `"upcoming"`）
-2. 跑 `node scripts/daily_update.js` 同步到 `index.html`
-3. `git add -A && git commit -m "data: 添加 XXX 赛事" && git push`
+想看**详细的项目结构与内部流程**，见 [`project/project.md`](./project/project.md)。
 
-新赛事推送到 main 后，GitHub Pages 会自动重新部署。
+---
+
+## 许可与致谢
+
+数据版权归各赛事主办方与发布平台所有，本项目仅做聚合展示。发现问题欢迎提 Issue。
+
+如果这个小工具帮到了你，欢迎点个 ⭐。

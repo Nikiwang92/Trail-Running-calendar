@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname);
 const DATA_FILE = path.join(ROOT, '_race_data.js');
 const HTML_FILE = path.join(ROOT, 'index.html');
 
@@ -25,6 +25,8 @@ const races = require(DATA_FILE);
 
 let updated = 0;
 races.forEach(r => {
+    // cancelled 由 merge_all.py 依"连续 14 天未抓到"判定，这里不覆盖
+    if (r.status === 'cancelled') return;
     const endDate = new Date(r.endDate || r.date);
     const newStatus = endDate < todayDate ? 'past' : 'upcoming';
     if (r.status !== newStatus) {
@@ -38,12 +40,12 @@ console.log(`[daily] 共 ${races.length} 场，更新 ${updated} 场状态`);
 // 3. 序列化单条赛事为 JS 字面量
 function serializeRace(race, indent) {
     const parts = [];
-    parts.push(`name:${JSON.stringify(race.name)}`);
-    parts.push(`date:${JSON.stringify(race.date)}`);
+    parts.push(`name:${JSON.stringify(race.name == null ? '' : String(race.name))}`);
+    parts.push(`date:${JSON.stringify(race.date == null ? '' : String(race.date))}`);
     if (race.endDate) parts.push(`endDate:${JSON.stringify(race.endDate)}`);
-    parts.push(`province:${JSON.stringify(race.province)}`);
-    parts.push(`city:${JSON.stringify(race.city)}`);
-    const distArr = race.distances.map(d => {
+    parts.push(`province:${JSON.stringify(race.province == null ? '' : String(race.province))}`);
+    parts.push(`city:${JSON.stringify(race.city == null ? '' : String(race.city))}`);
+    const distArr = (race.distances || []).map(d => {
         if (typeof d === 'object') {
             const o = [`d:${JSON.stringify(d.d)}`];
             if (d.climb) o.push(`climb:${JSON.stringify(d.climb)}`);
@@ -57,6 +59,7 @@ function serializeRace(race, indent) {
     parts.push(`status:${JSON.stringify(race.status)}`);
     if (race.link) parts.push(`link:${JSON.stringify(race.link)}`);
     if (race.wechat) parts.push(`wechat:${JSON.stringify(race.wechat)}`);
+    if (race.official) parts.push(`official:${JSON.stringify(race.official)}`);
     return `${indent}{ ${parts.join(', ')} }`;
 }
 
@@ -87,19 +90,29 @@ if (!todayRegex.test(html)) {
 html = html.replace(todayRegex, `const today = new Date('${todayStr}')`);
 console.log(`[daily] ✓ const today = ${todayStr}`);
 
-// 5b. races 数组
-const racesStartMarker = 'const races = [';
-const racesStartIdx = html.indexOf(racesStartMarker);
-if (racesStartIdx === -1) {
-    console.error('[daily] ✗ index.html 找不到 races 数组');
-    process.exit(1);
+// 5b. races 数组：template/shim 模式跳过；嵌入模式才替换
+// 检测 "const races = module" → 跳过（shim 模式）
+if (html.includes('const races = module')) {
+    console.log('[daily] (skip) template/shim 模式（const races = module.exports）');
+} else {
+    const racesStartMarker = 'const races = [';
+    const racesStartIdx = html.indexOf(racesStartMarker);
+    if (racesStartIdx === -1) {
+        console.log('[daily] (skip) index.html 无 const races');
+    } else {
+        const afterMarker = html.substring(racesStartIdx + racesStartMarker.length, racesStartIdx + racesStartMarker.length + 50);
+        if (afterMarker.trimStart().startsWith(']')) {
+            console.log('[daily] (skip) const races = [] 空数组');
+        } else {
+            const racesEndIdx = html.indexOf('];', racesStartIdx) + 2;
+            const htmlPrefix = html.slice(0, racesStartIdx + racesStartMarker.length);
+            const htmlSuffix = html.slice(racesEndIdx);
+            const newHtmlArr = '\n' + races.map(r => serializeRace(r, '    ')).join(',\n') + '\n];';
+            html = htmlPrefix + newHtmlArr + htmlSuffix;
+            console.log(`[daily] ✓ races 数组已重新生成 (${races.length} 场)`);
+        }
+    }
 }
-const racesEndIdx = html.indexOf('];', racesStartIdx) + 2;
-const htmlPrefix = html.slice(0, racesStartIdx + racesStartMarker.length);
-const htmlSuffix = html.slice(racesEndIdx);
-const newHtmlArr = '\n' + races.map(r => serializeRace(r, '    ')).join(',\n') + '\n];';
-html = htmlPrefix + newHtmlArr + htmlSuffix;
-console.log(`[daily] ✓ races 数组已重新生成 (${races.length} 场)`);
 
 // 5c. 页脚"更新时间：YYYY年M月D日"
 const cnDate = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;

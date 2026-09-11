@@ -5,6 +5,21 @@ __pycache__/
 
 # Backups / temp
 backup/
+./claude
+archive/
+
+# Crawler outputs (daily runs)
+crawl/output/
+赛事数据/
+2026赛事数据/*.csv
+2026赛事数据/*.xlsx
+头条赛事清单.json
+2026中国越野赛事.csv
+2026中国越野赛事.xlsx
+越野赛事2026_*.csv
+越野赛事2026_*.xlsx
+越野赛事2026_*.json
+越野赛事*.log
 
 # OS
 .DS_Store
