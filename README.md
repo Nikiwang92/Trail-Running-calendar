@@ -79,13 +79,15 @@
 ### 2. 开启自动更新（GitHub Actions）
 - 进入 `你的仓库 → Actions`
 - 若提示 "Workflows aren't being run on this forked repository"，点 **I understand my workflows, go ahead and enable them**
-- 之后每天 UTC 16:00（北京 00:00）会自动抓取并提交
+- 之后每天 UTC 19:00（北京 03:00）会自动抓取并提交
 
 ### 3. 开启网页托管（GitHub Pages）
 - `Settings → Pages`
 - **Source** 选 `Deploy from a branch`
 - **Branch** 选 `main` + `/ (root)` → Save
 - 几分钟后访问 `https://你的用户名.github.io/Trail-Running-calendar/`
+
+> 仓库自带 `.nojekyll`——否则 Pages 的 Jekyll 会忽略以 `_` 开头的 `_race_data.js`，页面会一片空白。
 
 ### 4. 授权 Actions 提交（如遇权限报错）
 - `Settings → Actions → General → Workflow permissions`

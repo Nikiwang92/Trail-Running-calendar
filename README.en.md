@@ -79,13 +79,15 @@ Click **Fork** at the top-right of this page to get `your-username/Trail-Running
 ### 2. Enable auto-updates (GitHub Actions)
 - Go to `your repo → Actions`
 - If you see "Workflows aren't being run on this forked repository", click **I understand my workflows, go ahead and enable them**
-- After that, it crawls and commits daily at UTC 16:00 (Beijing 00:00)
+- After that, it crawls and commits daily at UTC 19:00 (Beijing 03:00)
 
 ### 3. Enable web hosting (GitHub Pages)
 - `Settings → Pages`
 - Set **Source** to `Deploy from a branch`
 - Set **Branch** to `main` + `/ (root)` → Save
 - In a few minutes, visit `https://your-username.github.io/Trail-Running-calendar/`
+
+> The repo ships with `.nojekyll` — without it, Pages' Jekyll would ignore `_race_data.js` (leading underscore) and the page would render empty.
 
 ### 4. Allow Actions to push (if you hit a permission error)
 - `Settings → Actions → General → Workflow permissions`

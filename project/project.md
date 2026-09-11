@@ -18,7 +18,7 @@
 ## 二、总览与数据流
 
 ```
-[触发] GitHub Actions cron '0 16 * * *'(UTC=北京00:00)  或手动 Run workflow
+[触发] GitHub Actions cron '0 19 * * *'(UTC 19:00 = 北京 03:00)  或手动 Run workflow
    │
    ▼
 ① 抓取  python crawlers/run_all.py
@@ -388,4 +388,5 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 - **saihuitong 已停用**：扫 102 个运营方域名产出 0 场，从 `run_all.py` 移除。`domains.json` 保留备用。
 - **MISSING_LOG 的 key 是 `normalize_name` 结果**：曾出现含转义引号的赛事名被解析成 `\` 等脏 key，已清理，但改解析逻辑时需回归验证。
 - **`crawl/output/` 是 gitignore**：CI 每次重新生成；本地调试时注意别把旧 JSON 当新数据。
+- **`.nojekyll` 必须存在**（仓库根目录）：GitHub Pages 默认用 Jekyll，会忽略以 `_` 开头的文件（`_race_data.js` 因此 404，页面空白）。删掉它就等于关掉"数据文件发布"。
 - **首次全量抓取较慢**（zuicool 800+ 详情页，1 QPS 限速 + 站点限流），CI 里 `continue-on-error` 保证单平台失败不阻塞。
