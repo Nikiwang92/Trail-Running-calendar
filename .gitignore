@@ -5,7 +5,7 @@ __pycache__/
 
 # Backups / temp
 backup/
-./claude
+.claude/
 archive/
 
 # Crawler outputs (daily runs)
