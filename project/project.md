@@ -146,11 +146,10 @@ CRAWLERS = [('zuicool','zuicool'), ('utmb','utmb')]
 
 **③ 增量决策**（核心，见 `crawl()`）
 ```
-新赛事（_race_data 里没有该 id）        → 抓详情
-列表指纹变了（raw 的 md5 变了）        → 抓详情
-首次见到（state 无该 id）且尚未开赛     → 抓详情（建指纹）
+state 里没见过该 id（新赛事）且尚未开赛  → 抓详情
+state 里见过、但列表指纹变了            → 抓详情
 到全量周期(FULL_REFRESH_DAYS=15)且尚未开赛 → 抓详情（兜底"详情页独有变化"）
-其余                                   → 跳过
+其余 / 已开赛结束                       → 跳过
 ```
 - 已开赛/结束的赛事（`date < today`）**永不重抓**（现 851 场里 past 629 场，占 7 成，直接砍掉）
 - 跳过的条目**沿用上一次 `zuicool.json` 的详情字段**（`_load_prev_output()`），保证输出是**完整快照**——否则 `official`/`wechat`/`distances` 会丢，导致合并层去重与 missing 判定失效

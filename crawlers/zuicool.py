@@ -151,16 +151,20 @@ def _existing_zuicool_ids():
     return ids
 
 
-def _full_due(state, today):
+def _full_reason(state, today, forced=False):
+    """返回触发全量的理由字符串；空串表示走增量。"""
+    if forced:
+        return '手动 --full'
     last = state.get('last_full')
     if not last:
-        return True
+        return '首次运行（无历史全量记录）'
     try:
-        y, mo, d = (int(x) for x in last.split('-'))
-        ty, tmo, td = (int(x) for x in today.split('-'))
-        return (date(ty, tmo, td) - date(y, mo, d)).days >= FULL_REFRESH_DAYS
+        days = (date.fromisoformat(today) - date.fromisoformat(last)).days
+        if days >= FULL_REFRESH_DAYS:
+            return f'距上次全量 {days} 天（阈值 {FULL_REFRESH_DAYS}）'
     except Exception:
-        return True
+        return '上次全量日期异常'
+    return ''
 
 
 
@@ -424,9 +428,18 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
     session = get_session()
     today = today or date.today().isoformat()
     state = load_state()
-    full_due = full or _full_due(state, today)
+    full_reason = _full_reason(state, today, forced=full)
+    full_due = bool(full_reason)
     existing_ids = _existing_zuicool_ids()
-    print(f'[zuicool] 模式={"全量" if full_due else "增量"} 今日={today} 已入库id={len(existing_ids)}')
+    if full_due:
+        print('=' * 60)
+        print(f'[zuicool] ★★★ 全量模式 『{full_reason}』')
+        print('[zuicool]   将对所有【未开赛】赛事重抓详情（已办完的仍跳过）')
+        print('=' * 60)
+    else:
+        print('-' * 60)
+        print(f'[zuicool] 增量模式  上次全量={state.get("last_full")}  今日={today}  已入库id={len(existing_ids)}')
+        print('-' * 60)
 
     # 1) 收集所有地区的列表卡片（同一赛事可能同时出现在大陆/港澳台/海外列表）
     all_items = {}
@@ -441,25 +454,25 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
             all_items[rid]['_region'] = label
     print(f'[zuicool] 列表共 {len(all_items)} 场')
 
-    # 2) 决定抓哪些详情
+    # 2) 决定抓哪些详情（"是否见过"以 state 为准，见过的就不重复抓）
     need = []
     for rid, it in all_items.items():
         fp = _fingerprint(it)
         it['_fp'] = fp
         prev = state['races'].get(rid)
         started = (it.get('date') or '') < today   # 已开赛/结束的不抓详情
-        if rid not in existing_ids:
-            need.append((rid, it, 'new'))          # 新赛事
-        elif prev is None:
+        if prev is None:
             if not started:
-                need.append((rid, it, 'init'))     # 首次建指纹
+                need.append((rid, it, 'new'))      # 从没见过的新赛事
         elif prev.get('fp') != fp:
             need.append((rid, it, 'changed'))      # 列表有变化
         elif full_due and not started:
             need.append((rid, it, 'full'))         # 全量兜底（跳过已开赛）
     from collections import Counter
     reasons = Counter(x[2] for x in need)
-    print(f'[zuicool] 需抓详情 {len(need)} 场 / 共 {len(all_items)}：{dict(reasons)}')
+    label = {'new': '新增', 'init': '首次建指纹', 'changed': '列表变动', 'full': '全量兜底'}
+    detail = '  '.join(f'{label.get(k, k)}={v}' for k, v in reasons.items()) or '无'
+    print(f'[zuicool] 本次需抓详情 {len(need)} / 共 {len(all_items)} 场   （{detail}）')
 
     # 3) 抓详情 + 组装输出（覆盖全部列表项）
     fetched = {}
