@@ -1,6 +1,6 @@
-# China Trail Running Calendar 🏃⛰️
+# Trail Running Calendar 🏃⛰️
 
-A **daily auto-updating** calendar of trail running races across China. It crawls multiple platforms and aggregates everything into one searchable, filterable web page.
+A **daily auto-updating** calendar of trail running races. It crawls multiple platforms and aggregates everything into one searchable, filterable web page.
 
 > Data refreshes automatically every day at 00:00 (Beijing time / UTC+8). No manual maintenance needed.
 
@@ -14,7 +14,7 @@ A **daily auto-updating** calendar of trail running races across China. It crawl
 
 ## What is this
 
-Trail races in China are scattered across platforms like Zuicool and UTMB. This project collects them into **one list** with date, location, categories, elevation gain, cut-off times, and certification tags (UTMB / Golden League / ITRA / Youth / Training race), organized by month.
+Trail races are scattered across platforms like Zuicool and UTMB. This project collects them into **one list** with date, location, categories, elevation gain, cut-off times, and certification tags (UTMB / Golden League / ITRA / Youth / Training race), organized by month.
 
 Currently **840+ races** for 2026, covering 29 provinces.
 
