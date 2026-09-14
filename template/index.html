@@ -189,8 +189,8 @@
         }
 
         .search-box {
-            flex: 0 1 320px;
-            min-width: 140px;
+            flex: 1;
+            min-width: 180px;
             padding: 5px 10px;
             border-radius: 0;
             border: 2px solid var(--border);
@@ -209,52 +209,52 @@
             transform: translate(-1px, -1px);
         }
 
-        /* 筛选折叠按钮（搜索框右侧，显眼） */
-        .filter-toggle {
-            display: inline-flex;
+        /* 筛选折叠条（整条，显眼） */
+        .filter-toggle-bar {
+            display: flex;
             align-items: center;
-            gap: 6px;
-            flex: 0 0 auto;
-            padding: 5px 12px;
+            gap: 8px;
+            width: 100%;
+            padding: 6px 12px;
+            margin: 0 0 6px;
             border: 2px solid var(--border);
             background: var(--yellow);
             color: var(--fg);
             font-family: 'Outfit', sans-serif;
-            font-size: 0.75rem;
+            font-size: 0.78rem;
             font-weight: 900;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.06em;
             cursor: pointer;
             box-shadow: 2px 2px 0 0 var(--border);
-            white-space: nowrap;
+            text-align: left;
             transition: all 0.15s ease-out;
-            margin-left: auto;
         }
 
-        .filter-toggle:hover {
+        .filter-toggle-bar:hover {
             transform: translate(-1px, -1px);
             box-shadow: 3px 3px 0 0 var(--border);
         }
 
-        .filter-toggle:active {
+        .filter-toggle-bar:active {
             transform: translate(1px, 1px);
             box-shadow: none;
         }
 
-        .filter-toggle .ft-state {
+        .filter-toggle-bar .ft-label {
+            flex: 1;
+        }
+
+        .filter-toggle-bar .ft-state {
             font-weight: 700;
-            font-size: 0.66rem;
+            font-size: 0.68rem;
             letter-spacing: 0.02em;
             background: var(--fg);
             color: var(--white);
-            padding: 1px 7px;
+            padding: 1px 8px;
         }
 
-        .filter-toggle .ft-state:empty {
-            display: none;
-        }
-
-        .filter-toggle .ft-arrow {
-            font-size: 0.9rem;
+        .filter-toggle-bar .ft-arrow {
+            font-size: 0.95rem;
         }
 
         .filter-panel.collapsed {
@@ -406,19 +406,12 @@
             flex: 0 0 auto;
         }
 
-        /* 横向滚动的筛选行：细滚动条（可见、可拖动） */
+        /* 横向滚动的筛选行隐藏滚动条，省高度 */
         .filter-nav, .month-nav, .province-nav {
-            scrollbar-width: thin;
-            scrollbar-color: #888 #d5d5d5;
+            scrollbar-width: none;
         }
         .filter-nav::-webkit-scrollbar, .month-nav::-webkit-scrollbar, .province-nav::-webkit-scrollbar {
-            height: 6px;
-        }
-        .filter-nav::-webkit-scrollbar-thumb, .month-nav::-webkit-scrollbar-thumb, .province-nav::-webkit-scrollbar-thumb {
-            background: #888;
-        }
-        .filter-nav::-webkit-scrollbar-track, .month-nav::-webkit-scrollbar-track, .province-nav::-webkit-scrollbar-track {
-            background: #d5d5d5;
+            display: none;
         }
 
         .province-btn {
@@ -870,12 +863,12 @@
     <div class="sticky-nav">
     <div class="toolbar">
         <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...（回车确认）">
-        <button class="filter-toggle" id="filterToggle" type="button" aria-expanded="true">
-            <span class="ft-label">筛选条件</span>
-            <span class="ft-state" id="ftState"></span>
-            <span class="ft-arrow" id="ftArrow">▴</span>
-        </button>
     </div>
+    <button class="filter-toggle-bar" id="filterToggle" type="button" aria-expanded="true">
+        <span class="ft-label">筛选条件</span>
+        <span class="ft-state" id="ftState"></span>
+        <span class="ft-arrow" id="ftArrow">▴</span>
+    </button>
     <div class="filter-panel" id="filterPanel">
     <div class="filter-nav" data-group="status">
         <button class="filter-btn active" data-filter="all">全部</button>
@@ -912,7 +905,6 @@
 
     <div class="province-nav">
         <button class="province-btn active" data-province="all">全部省份</button>
-    </div>
     </div>
     </div>
 
@@ -969,7 +961,7 @@
 </div>
 
 <footer>
-    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月14日</p>
+    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月11日</p>
     <p style="margin-top:8px;">部分赛事日期和报名信息可能调整，请以各赛事官方公告为准</p>
 </footer>
 
@@ -1042,7 +1034,7 @@ const monthNames = {
     12: { name: "十二月 December", icon: "🎿" },
 };
 
-const today = new Date('2026-09-14');
+const today = new Date('2026-09-11');
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
