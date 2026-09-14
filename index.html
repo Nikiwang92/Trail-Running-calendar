@@ -35,21 +35,21 @@
         /* ===== Hero ===== */
         .hero {
             background: var(--white);
-            padding: 70px 20px 50px;
+            padding: 28px 20px 20px;
             text-align: center;
             position: relative;
             overflow: hidden;
-            border-bottom: 4px solid var(--border);
+            border-bottom: 3px solid var(--border);
         }
 
         /* 背景几何装饰形状 */
         .hero::before {
             content: '';
             position: absolute;
-            top: -60px;
+            top: -70px;
             right: -40px;
-            width: 180px;
-            height: 180px;
+            width: 150px;
+            height: 150px;
             background: var(--yellow);
             border-radius: 50%;
             border: 4px solid var(--border);
@@ -58,10 +58,10 @@
         .hero::after {
             content: '';
             position: absolute;
-            bottom: -50px;
+            bottom: -60px;
             left: 6%;
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             background: var(--red);
             border: 4px solid var(--border);
             transform: rotate(45deg);
@@ -72,20 +72,20 @@
             z-index: 0;
         }
         .geo-deco.tri {
-            top: 30px;
+            top: 22px;
             left: 8%;
             width: 0;
             height: 0;
-            border-left: 30px solid transparent;
-            border-right: 30px solid transparent;
-            border-bottom: 52px solid var(--blue);
+            border-left: 24px solid transparent;
+            border-right: 24px solid transparent;
+            border-bottom: 42px solid var(--blue);
             filter: drop-shadow(3px 3px 0px #121212);
         }
 
         .hero h1 {
-            font-size: 2.4rem;
+            font-size: 1.9rem;
             font-weight: 900;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
             position: relative;
             z-index: 1;
             text-transform: uppercase;
@@ -117,8 +117,8 @@
         .stats-bar {
             display: flex;
             justify-content: center;
-            gap: 16px;
-            margin-top: 34px;
+            gap: 14px;
+            margin-top: 18px;
             position: relative;
             z-index: 1;
             flex-wrap: wrap;
@@ -126,12 +126,12 @@
 
         .stat-item {
             text-align: center;
-            padding: 18px 22px;
+            padding: 10px 18px;
             background: var(--yellow);
             border: 3px solid var(--border);
             box-shadow: var(--shadow-sm);
             transition: all 0.2s ease-out;
-            min-width: 120px;
+            min-width: 108px;
         }
 
         .stat-item:nth-child(2) {
@@ -149,7 +149,7 @@
         }
 
         .stat-num {
-            font-size: 2.4rem;
+            font-size: 1.7rem;
             font-weight: 900;
             line-height: 1;
             display: block;
@@ -826,10 +826,10 @@
         }
 
         @media (max-width: 768px) {
-            .hero h1 { font-size: 1.9rem; }
-            .stats-bar { gap: 10px; }
-            .stat-item { min-width: 96px; padding: 14px 12px; }
-            .stat-num { font-size: 1.9rem; }
+            .hero h1 { font-size: 1.5rem; }
+            .stats-bar { gap: 8px; }
+            .stat-item { min-width: 88px; padding: 8px 10px; }
+            .stat-num { font-size: 1.4rem; }
             .race-grid { grid-template-columns: 1fr; }
             .toolbar { flex-direction: column; align-items: stretch; }
             .filter-btn { text-align: center; }
