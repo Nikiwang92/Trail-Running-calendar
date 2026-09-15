@@ -585,6 +585,36 @@ def sync_region_province(existing, crawled, src):
     return new_src, changed
 
 
+def sync_city_province(existing, crawled, src):
+    """已有条目的 province/city 若与 zuicool 列表卡片不一致 → 以爬虫为准。
+    历史遗留：province/city 只在新增时写入，之后 merge 从不更新，错值会永久留存
+    （曾把「九寨沟」标成浙江、「青海同德」标成浙江建德——多场赛事套用了同一个错误地点）。"""
+    by_key = {}
+    for plat, races in crawled.items():
+        if plat != 'zuicool':
+            continue
+        for r in races:
+            k = link_key(r.get('link', ''))
+            if k and r.get('province'):
+                by_key[k] = r
+    new_src = src
+    changed = []
+    for e in existing:
+        cr = by_key.get(link_key(e.get('link', '')))
+        if not cr or e.get('province') == cr.get('province'):
+            continue
+        raw = e['_raw']
+        new_raw = re.sub(r'province:"((?:[^"\\]|\\.)*)"',
+                         'province:' + json.dumps(cr['province'], ensure_ascii=False), raw, count=1)
+        if cr.get('city'):
+            new_raw = re.sub(r'city:"((?:[^"\\]|\\.)*)"',
+                             'city:' + json.dumps(clean_city(cr['city']), ensure_ascii=False), new_raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            changed.append(f"{e['name'][:20]}: {e.get('province')}→{cr['province']}")
+    return new_src, changed
+
+
 def sync_reg_deadline(existing, crawled, src):
     """把列表卡片上的"报名截止"同步到已有条目（新增/更新/删除）。
     该字段来自列表卡片，不依赖详情页，因此每天都能拿到最新值。"""
@@ -746,6 +776,11 @@ def main():
     new_src, region_fixed = sync_region_province(existing, crawled, new_src)
     if region_fixed:
         print(f'[merge] 修正港澳台归属 {region_fixed} 场')
+
+    # 1.25 同步省份/城市（以 zuicool 列表卡片为准，修正历史错配）
+    new_src, loc_fixed = sync_city_province(existing, crawled, new_src)
+    if loc_fixed:
+        print(f'[merge] 修正省份/城市 {len(loc_fixed)} 场: {loc_fixed[:5]}')
 
     # 1.3 同步"报名截止"（来自列表卡片）
     new_src, dl_fixed = sync_reg_deadline(existing, crawled, new_src)

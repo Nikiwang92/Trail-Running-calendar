@@ -81,6 +81,7 @@ F:\RUN\
 │       └── wechat.py          # 公众号抽取
 ├── scripts/
 │   ├── merge_all.py           # ★ 合并层（核心，~720 行）
+│   ├── audit_location.py      # 体检：比对 _race_data.js 与 zuicool 列表卡片的 province
 │   ├── fix_tags.py            # 一次性：重算历史条目的 tags
 │   └── dedup_by_link.py       # 历史一次性脚本
 ├── crawl/
@@ -198,6 +199,7 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 0 | 跨平台去重 | `drop_claimed_duplicates` | `official` 域名"认领"（来自 zuicool 输出 **∪ 现有 `_race_data`**）后，独立的 utmb 英文条目删除 |
 | 1 | 重算 status | `auto_recalc_status` | 只改 status 字段 |
 | 1.2 | 修正港澳台归属 | `sync_region_province` | 已有条目若被识别为港澳台（爬虫 province 为港澳台、现有不是）→ 改 province/city |
+| 1.25 | 同步省份/城市 | `sync_city_province` | 已有条目的 province 与 zuicool 列表卡片不符 → 以爬虫为准（修正"只在新增时写入、之后永不更新"导致的历史错配）|
 | 1.3 | 同步报名截止 | `sync_reg_deadline` | 把列表卡片上的"报名截止"写入/更新到已有条目 |
 | 1.5 | 补全组别 | `merge_existing_distances` | 用官方组别覆盖脏数据；**只有 zuicool 平台允许覆盖**，其余平台仅在空时补 |
 | 2 | 检测取消 | `detect_missing` + `mark_cancelled` | 连续 **14 天**所有平台没抓到 → `status:"cancelled"`（不删条目），进度存 `crawl/MISSING_LOG.json`。**按"天"累加**（同日多次运行算 1 天）；**已过去的赛事**和**非 zuicool 来源**的赛事不参与统计 |

@@ -509,12 +509,17 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
         if not name or not date_:
             continue
         city = info.get('city') or it.get('city') or ''
-        # 港澳台：列表卡片地点准（"中国香港 …"），详情页常写成大陆报名点 → 优先用卡片地点
+        # 列表卡片是"当前在售状态"的权威来源：卡片省份与详情/缓存冲突时以卡片为准
+        # （详情页地点常写成报名点/相关赛事；增量跳过的条目还会沿用旧缓存，历史上造成过省份错配）
         card_city = it.get('city') or ''
         card_core = card_city[2:] if card_city.startswith('中国') else card_city
+        card_prov = split_province_city(card_city)[0] if card_city else ''
+        city_prov = split_province_city(city)[0] if city else ''
         if any(card_core.startswith(k) for k in ('香港', '澳门', '台湾')):
-            city = card_city
-        province = split_province_city(city)[0] if city else ''
+            city, city_prov = card_city, card_prov
+        elif card_prov and city_prov and card_prov != city_prov:
+            city, city_prov = card_city, card_prov
+        province = card_prov or city_prov
         # 海外赛事统一归为"海外"（个别城市名可能误命中，但整体更清晰）
         if it.get('_region') == '海外' and province not in ('香港', '澳门', '台湾'):
             province = '海外'
