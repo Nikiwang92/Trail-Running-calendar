@@ -1,9 +1,10 @@
 # crawlers/_lib/tags.py
-# tags 推断：utmb / golden / itra（赛事认证）+ youth（青少年/亲子/少儿）+ training（训练赛/训练营）
+# tags 推断：utmb / golden / torx（系列品牌）+ itra（认证）+ youth（青少年/亲子/少儿）+ training（训练赛/训练营）
 import re
 
 UTMB_KW = ['utmb', 'by utmb', '黄金联赛', 'golden league', '黄金系列']
 GOLDEN_KW = ['黄金联赛', '黄金系列赛', 'golden league']
+TORX_KW = ['torx']
 ITRA_KW = ['itra', '国际越野跑协会']
 YOUTH_KW = ['青少年', '少年', '亲子', '少儿', 'kidstrail', '少年越野', '儿童越野', 'kids trail', '少年组', '亲子组']
 TRAINING_KW = ['训练赛', '训练营', '训练', 'practice race', 'training camp']
@@ -11,7 +12,7 @@ TRAINING_KW = ['训练赛', '训练营', '训练', 'practice race', 'training ca
 
 def infer_tags(*sources):
     """从多个源（详情页文本/链接/API 字段）推断 tags
-    返回 list，元素 ∈ {utmb, golden, itra, youth, training}
+    返回 list，元素 ∈ {utmb, golden, torx, itra, youth, training}
     """
     text = ' '.join(str(s or '') for s in sources).lower()
     tags = []
@@ -19,6 +20,8 @@ def infer_tags(*sources):
         tags.append('utmb')
     if any(kw in text for kw in GOLDEN_KW):
         tags.append('golden')
+    if any(kw in text for kw in TORX_KW):
+        tags.append('torx')
     if any(kw in text for kw in ITRA_KW):
         tags.append('itra')
     if any(kw in text for kw in YOUTH_KW):

@@ -2,11 +2,12 @@
 __pycache__/
 *.py[cod]
 *.log
-
+CLAUDE.md
 # Backups / temp
 backup/
 .claude/
 archive/
+.i-have-adhd-always
 
 # Crawler outputs (daily runs)
 crawl/output/

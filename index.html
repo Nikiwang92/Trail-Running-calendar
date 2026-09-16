@@ -619,6 +619,16 @@
             color: var(--white);
         }
 
+        .tag-torx {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        .tag-skyrunning {
+            background: #6A1B9A;
+            color: var(--white);
+        }
+
         .tag-distance {
             background: var(--fg);
             color: var(--white);
@@ -888,6 +898,8 @@
     <div class="filter-nav" data-group="tag">
         <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="utmb">UTMB</button>
+        <button class="filter-btn" data-filter="torx">TORX</button>
+        <button class="filter-btn" data-filter="skyrunning">Skyrunning</button>
         <button class="filter-btn" data-filter="golden">黄金联赛</button>
         <button class="filter-btn" data-filter="itra">ITRA</button>
         <button class="filter-btn" data-filter="youth">青少年</button>
@@ -972,7 +984,7 @@
 </div>
 
 <footer>
-    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月15日</p>
+    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月16日</p>
     <p style="margin-top:8px;">部分赛事日期和报名信息可能调整，请以各赛事官方公告为准</p>
 </footer>
 
@@ -1045,7 +1057,7 @@ const monthNames = {
     12: { name: "十二月 December", icon: "🎿" },
 };
 
-const today = new Date('2026-09-15');
+const today = new Date('2026-09-16');
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -1054,7 +1066,8 @@ function formatDate(dateStr) {
 
 function getStatusFromRace(race) {
     if (race.status === 'cancelled') return 'cancelled';
-    const raceDate = new Date(race.date);
+    // 多日赛用结束日判断：只看开赛日会把进行中的赛事误判为"已结束"
+    const raceDate = new Date(race.endDate || race.date);
     if (raceDate < today) return 'past';
     return 'upcoming';
 }
@@ -1106,6 +1119,8 @@ function renderRaces(filteredRaces) {
 
             let tagsHTML = '';
             if (race.tags.includes('utmb')) tagsHTML += '<span class="tag tag-utmb">UTMB</span>';
+            if (race.tags.includes('torx')) tagsHTML += '<span class="tag tag-torx">TORX</span>';
+            if (race.tags.includes('skyrunning')) tagsHTML += '<span class="tag tag-skyrunning">Skyrunning</span>';
             if (race.tags.includes('golden')) tagsHTML += '<span class="tag tag-golden">黄金联赛</span>';
             if (race.tags.includes('itra')) tagsHTML += '<span class="tag tag-itra">ITRA</span>';
 

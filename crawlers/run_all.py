@@ -1,5 +1,5 @@
 # crawlers/run_all.py
-# 编排器：顺序跑 6 个爬虫，timeout 控制，失败标记不阻塞
+# 编排器：顺序跑各爬虫，失败标记不阻塞
 import sys, time, traceback
 from pathlib import Path
 
@@ -9,6 +9,8 @@ sys.path.insert(0, str(ROOT / 'crawlers'))
 CRAWLERS = [
     ('zuicool', 'zuicool'),        # 主力：覆盖 800+ 场
     ('utmb', 'utmb'),              # 次级：utmb.world 中国子站
+    ('torx', 'torx'),              # 国际：torxtrail.com（意大利奥斯塔谷 TORX 系列）
+    ('skyrunning', 'skyrunning'),  # 国际：skyrunning.com（ISF 天空跑，全球 ~135 场）
 ]
 # 停用：
 #   saihuitong     —— 扫 102 个运营方域名但产出 0 场（站点结构变化，与 zuicool 高度重叠）

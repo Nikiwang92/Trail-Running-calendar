@@ -1,6 +1,6 @@
 # 项目结构与流程 — 越野赛事日历
 
-本文件是这个项目的**详细上手文档**（结构 / 流程 / 改动约定），给 Claude Code 和人类协作者共用。改动项目结构/流程时，请同步更新本文件。简介与用法见 [`README.md`](../README.md)。
+本文件是这个项目的**详细上手文档**（结构 / 流程 / 改动约定），给 Claude Code 和人类协作者共用。改动项目结构/流程时，请同步更新本文件**和根目录 `CLAUDE.md`（两份内容必须逐字一致）**。简介与用法见根目录 `README.md`（相对链接在 `project/` 与根目录下指向不同，故不写成链接）。
 
 ---
 
@@ -23,7 +23,9 @@
    ▼
 ① 抓取  python crawlers/run_all.py
    ├── zuicool.py     主力（增量：每天全量抓列表，只对变化的抓详情）
-   └── utmb.py        次级（utmb.world 中国子站）
+   ├── utmb.py        次级（UTMB World Series 全球站，官方 API）
+   ├── torx.py        国际（torxtrail.com，意大利 TORX 系列）
+   └── skyrunning.py  国际（skyrunning.com / ISF 天空跑，全球 ~136 场）
    各爬虫只写 crawl/output/{platform}.json
    │
    ▼
@@ -50,13 +52,13 @@
 ```
 搜索框（名称/省/市/组别，输入即筛 + 回车）
 [状态行]  全部 / 未开始 / 已结束                              单选
-[标签行]  全部 / UTMB / 黄金联赛 / ITRA / 青少年 / 训练赛 / 100K+   多选
+[标签行]  全部 / UTMB / TORX / Skyrunning / 黄金联赛 / ITRA / 青少年 / 训练赛 / 100K+   多选
 [年份行]  全部 / 2026 / 2027…                                单选
 [月份行]  全部 / 1–12月                                      单选
 [省份行]  全部省份 / 各省（港澳台/海外 排最后）                  单选
 ```
 
-**当前规模**：851 场（2026:848 / 2027:3）· 海外 2 · 港澳台 3 · 重复 0。
+**当前规模**：1100 场（2026:1063 / 2027:37）· 海外 231 · 港澳台 6 · 重复 0。
 
 ---
 
@@ -71,7 +73,9 @@ F:\RUN\
 │   ├── run_all.py             # 编排器：顺序跑启用爬虫
 │   ├── zuicool.py             # 主力爬虫
 │   ├── saihuitong.py          # 赛会通运营方子站（已停用）
-│   ├── utmb.py                # utmb.world 子站
+│   ├── utmb.py                # 国际：UTMB World Series 全球站（官方 API）
+│   ├── torx.py                # 国际：torxtrail.com（意大利 TORX 系列，og:meta 解析）
+│   ├── skyrunning.py          # 国际：skyrunning.com（ISF 天空跑，日历表 + 单场页）
 │   ├── ahotu.py / ihuipao.py / runninginchina.py  # 已停用（见「已知限制」）
 │   └── _lib/                  # 公共工具
 │       ├── http.py            # Session + 每 host 限速 1 QPS + retry + UA 池
@@ -109,7 +113,7 @@ F:\RUN\
   province:"河北",
   city:"河北省张家口市桥西区大境门景区",
   distances:[ {d:"100K", climb:"3959m", time:"25h"}, ... ],  // 官方组别，降序
-  tags:["utmb"],                  // ∈ {utmb,golden,itra,youth,training}
+  tags:["utmb"],                  // ∈ {utmb,golden,torx,skyrunning,itra,youth,training}
   status:"past"|"upcoming"|"cancelled",
   link:"https://zuicool.com/event/98816",   // 可选
   wechat:"大境门古长城越野赛",               // 可选
@@ -119,7 +123,7 @@ F:\RUN\
 
 文件格式：`module.exports = [\n  { ... },\n  { ... }\n];`，每条**一行**，2 空格缩进。
 
-**当前规模**（会变，仅供参照）：851 场，组别 2224 个（带爬升 1227 / 带关门 813），31 省（含港澳台/海外）。
+**当前规模**（会变，仅供参照）：1100 场，组别 2717 个（带爬升 1392 / 带关门 833），33 省（含港澳台/海外）。
 
 ---
 
@@ -128,7 +132,7 @@ F:\RUN\
 ### 编排器 `crawlers/run_all.py`
 顺序跑（不并行，避免互踩），逐个 `import` 并调 `main()`，失败不阻塞。
 ```python
-CRAWLERS = [('zuicool','zuicool'), ('utmb','utmb')]
+CRAWLERS = [('zuicool','zuicool'), ('utmb','utmb'), ('torx','torx'), ('skyrunning','skyrunning')]
 ```
 
 ### 主力爬虫 `crawlers/zuicool.py`（增量抓取）
@@ -177,7 +181,16 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 
 
 ### 次级爬虫
-- **`utmb.py`**：从 `_race_data.js` 抽已知 `*.utmb.world` 子域名（+内置 5 个），抓 Next.js RSC payload；用 `build_alias_map()` 把英文名换成中文名。
+- **`utmb.py`**（国际 · UTMB World Series 全球站）：调官方 API `utmblive-api.utmb.world` 的 `/event-future` + `/event-utmbworld/history`（各 1 请求，覆盖 2026/2027 两届，共 95 场）。字段 title / tenant / url / country / countryCode / startDateIso|dateStart / raceCategories。
+  - `link` = `<url>?year=<年>`：`<tenant>.utmb.world` 是**年无关的赛事官网**，`?year=` 只是给去重用的届次区分符（站点忽略它），否则同一赛事 2026/2027 两届会被 link 去重合成一条。
+  - `official` **故意不设**：设了 `drop_claimed_duplicates` 会把自己判成"被他人认领"而删除。
+  - 港澳台按 `countryCode` 归 `香港/澳门/台湾`，其余 `海外`；`raceCategories`（100k/50k/20k/100m）→ `100K/50K/20K/100M`。
+  - 已有同 utmb 子域的中文条目 → 沿用中文名（`build_alias_map()` 按**完整 host** 索引，因为 API 的 tenant（`mountyun`）与子域 slug（`mount-yun`）拼写不一致）。自检：`python crawlers/utmb.py --selftest`。
+- **`torx.py`**（国际）：抓 `torxtrail.com` 首页，正则取 `tor\d+-*` 赛事页链接（当前 5 场：TOR330/450/130/100/30，意大利奥斯塔谷）；每页从 `og:title` / `og:description` 解析名称、日期范围、距离、爬升、关门、起点 —— 正文是 Brizy 拖拽生成，结构不稳定，故走 meta。`province` 统一置 `海外`，`tags` 为 `itra` + `torx`（VDA Trailers 自 2014 年为 ITRA 成员）。名称前缀 `TORX®`，否则页面搜 "TORX" 匹配不到。自检：`python crawlers/torx.py --selftest`。
+
+- **`skyrunning.py`**（国际）：抓 `skyrunning.com/calendar/`（1 请求，HTML 表格：名称/日期/国家/项目/单场页链接），再逐场抓单场页取**距离/垂直爬升/官网域名**。`province` 置 `海外`、`city` = 国家，`tags` = `skyrunning`。
+  - **去重策略：中国境内的比赛直接跳过**。zuicool 是中国赛事权威来源，而本站中国场次只有英文名（"Yading SkyRace®" ↔ zuicool「稻城亚丁天空跑」），中英异名靠名称/日期无法判定，跳过是唯一可靠的防重复手段（不丢数据，zuicool 已有）。
+  - 小数距离取整（`20,5km` → `21K`，模型只存整数 K）。全量约 138 请求 / 4–6 min（站点较慢）。自检：`python crawlers/skyrunning.py --selftest`。
 
 ### 停用平台（已评估，别再加回来）
 | 平台 | 原因 |
@@ -200,6 +213,8 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 1 | 重算 status | `auto_recalc_status` | 只改 status 字段 |
 | 1.2 | 修正港澳台归属 | `sync_region_province` | 已有条目若被识别为港澳台（爬虫 province 为港澳台、现有不是）→ 改 province/city |
 | 1.25 | 同步省份/城市 | `sync_city_province` | 已有条目的 province 与 zuicool 列表卡片不符 → 以爬虫为准（修正"只在新增时写入、之后永不更新"导致的历史错配）|
+| 1.26 | 同步名称 | `sync_name` | zuicool 列表名更长且（规范化后）包含现有名 → 更新（如「深圳100跑山赛」→「…暨TORX®中国站」）|
+| 1.27 | 补 TORX 标签 | `sync_torx_tags` | 名称含 TORX 的条目补 `torx` 标签（tag 只在新增时写入、zuicool 侧粘性，历史条目不会自动补）|
 | 1.3 | 同步报名截止 | `sync_reg_deadline` | 把列表卡片上的"报名截止"写入/更新到已有条目 |
 | 1.5 | 补全组别 | `merge_existing_distances` | 用官方组别覆盖脏数据；**只有 zuicool 平台允许覆盖**，其余平台仅在空时补 |
 | 2 | 检测取消 | `detect_missing` + `mark_cancelled` | 连续 **14 天**所有平台没抓到 → `status:"cancelled"`（不删条目），进度存 `crawl/MISSING_LOG.json`。**按"天"累加**（同日多次运行算 1 天）；**已过去的赛事**和**非 zuicool 来源**的赛事不参与统计 |
@@ -210,16 +225,18 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 4 | 写+校验 | `node -e require()` | 语法错就回滚 |
 | 5 | 报告 | 写 `crawl/REPORT_*.md` | |
 
-**去重的四道防线**（缺一不可）：
-1. `link_key`：zuicool 域名统一取 event id（`reg.zuicool.com/123` == `zuicool.com/event/123`）
-2. 同 `name_norm + date`
-3. **同日 + 同省 + 名称相似度 ≥0.85 或一方包含另一方**（`_names_similar`，处理赞助商前缀/标点差异）
-4. `official` 域名 ↔ utmb 子站 hostname
+**去重防线**（缺一不可）：
+1. `link_key`：zuicool 域名统一取 event id（`reg.zuicool.com/123` == `zuicool.com/event/123`）——zuicool 的 link 标识**具体赛事实例**，所以改期仍算同一条（**不要给 link 去重加日期**，否则同一赛事改期会被当成新赛事重复入库）
+2. 同 `(name_norm, date)`；再对同日近似名用 `_names_similar`（相似度 ≥0.85 / 一方包含另一方 / **规范化后完全相同**）
+3. `_names_similar` **只在"跨来源"时生效**（两边 link host 不同）：同源同日同地点的相似名多是**不同组别**（Skyrunning 的 Mourne SkyUltra / Mourne SkyTrail）
+4. `official` 域名认领：中文条目带 `<x>.utmb.world` → utmb 英文条目被 `drop_claimed_duplicates` / `detect_new` 拦下
+5. `utmb:<slug>` 判定**带日期**：同一个子域是年无关的赛事官网，2026/2027 两届要各留一条
+6. UTMB 全球站的中国/港澳台场次：同日已有「… by UTMB」条目 → 跳过。**最酷的条目常缺 `official` 域名，认领机制兜不住**（如「大蜀道100」），这条是最后的兜底
 
 **配置常量**：
 ```python
-ENABLED_PLATFORMS = {'zuicool', 'utmb'}   # 只合并这些
-PLATFORM_PRIORITY = ['zuicool', 'utmb']   # 冲突时的优先级
+ENABLED_PLATFORMS = {'zuicool', 'utmb', 'torx', 'skyrunning'}   # 只合并这些
+PLATFORM_PRIORITY = ['zuicool', 'utmb', 'torx', 'skyrunning']   # 冲突时的优先级
 CANCEL_THRESHOLD_DAYS = 14
 ```
 
@@ -257,7 +274,7 @@ CANCEL_THRESHOLD_DAYS = 14
 - 筛选栏：
   - 搜索框（名称/省/市/组别，输入即筛 + 回车确认）
   - **状态行**：全部 / 未开始 / 已结束 —— **单选**
-  - **标签行**：全部 / UTMB / 黄金联赛 / ITRA / 青少年 / 训练赛 / 100K+ —— **多选**
+  - **标签行**：全部 / UTMB / TORX / Skyrunning / 黄金联赛 / ITRA / 青少年 / 训练赛 / 100K+ —— **多选**
   - **年份行**：全部 / 2026 / 2027… —— 单选（从数据动态生成）
   - **月份行**：全部 / 1–12月 —— 单选
   - **省份行**：全部省份 / 各省 —— 单选，大陆按赛事数降序，**港澳台/海外排最后**
@@ -369,7 +386,7 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 ## 十一、关键约定（改代码前必读）
 
 1. **不要硬编码赛事数据**。任何赛事信息都应来自爬虫，绝不手写进 `_race_data.js` 或 HTML。
-2. **改结构先改本文件**。新增/删除爬虫、改变数据模型、调整流程，同步更新本文件（`project/project.md`）。
+2. **改结构先改本文件**。新增/删除爬虫、改变数据模型、调整流程，同步更新本文件（`project/project.md`）**和根目录 `CLAUDE.md`——两份必须保持一致**（`cp project/project.md CLAUDE.md`）。
 3. **tags 只从"赛事自身内容"推断**（名称 + 详情页自身区块），绝不扫整页——侧栏有别的赛事。
 4. **组别只取官方整数 K**（`100K/70K`），丢弃小数实际距离（`102.85km`）。
 5. **距离排序统一降序**；status 只有 `past/upcoming/cancelled` 三个值。
@@ -380,6 +397,12 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 
 ## 十二、已知限制与坑
 
+- **UTMB 全球站的 link 是年无关的系列官网**：`<tenant>.utmb.world` 同属一个赛事的所有届次，故爬虫用 `?year=` 做届次区分符。**不要用"link + 日期"做去重**——zuicool 的 link 是具体赛事实例，加日期会让"改期"变成"新增重复"（踩过：一次 merge 多出 68 条改期重复）。
+- **UTMB 全球站中国区可能有 2 条残留**：`2026安踏冠军·大连100越野赛` 在 zuicool 有两个 event id（`12996` / `32619`）、日期差一天，同 `(name_norm,date)` 与同日近似名都覆盖不到。属历史数据问题。
+- **`Ultra-Trail Mogan by UTMB®` 在中国但 `province` 记成 `海外`**：zuicool 未收录该赛事，`country` 只有 "China"，无法定位省份。同类问题只在"中国赛事未上最酷网"时出现。
+- **模糊去重只在"跨来源"时生效**：`dedupe_final` 的同日近似名合并、`detect_new` 的近似名跳过，**都要求两边 link host 不同**。同源（同平台）同日同地点的相似名，多是同场赛事的**不同组别/不同赛事**（如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail 同日同地），合并会误删。加平台前务必保留这个 host 判断。
+
+- **JS 数组空洞会静默传染**：`_race_data.js` 是"一行一条"的数组字面量，若出现连续两个逗号（`,,`）就产生空洞（`length` 比对象数多）。`Array.map/join` 会把空洞当空串保留，所以空洞不会自愈、且会一路传下去（`daily_update` 也修不掉）。`insert_new_races` 已加"head 已带尾逗号则不再补"的保护；手工删行时注意别留下孤立 `,` 行。校验：`node -e "const a=require('./_race_data.js');let h=0;for(let i=0;i<a.length;i++)if(!(i in a))h++;console.log(a.length,a.filter(x=>x&&x.name).length,h)"`（三个数应满足 length == 对象数，空洞 0）。
 - **`MISSING_LOG` 必须按"天"累加**：曾按"每次运行"累加，一天内反复跑 merge 把 days 刷到 14 → 36 场被误标 `cancelled`（靠 `data_backup/` 一键回滚救回）。改 `detect_missing` 时务必保留 `last_missing != today` 的判断。
 - **missing 统计只覆盖"未过去 + zuicool 来源"的赛事**：① 已结束的赛事会从 zuicool 列表自然下架，统计它们会导致 14 天后被误标 cancelled；② 非 zuicool 来源（官网/tsaigu/ninghai100 等）永远不会出现在 zuicool 列表里，统计它们会被永久误判为 missing。
 - **每次更新前会自动备份**：`backup/race_data/`（本地 7 份）+ `data_backup/`（入库 3 份）；出问题直接 `cp` 回滚。

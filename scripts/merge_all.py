@@ -11,6 +11,7 @@ from datetime import datetime
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'crawlers'))
 from _lib.parse import normalize_name
+from _lib.tags import TORX_KW
 
 OUT_DIR = ROOT / 'crawl' / 'output'
 DATA_FILE = ROOT / '_race_data.js'
@@ -24,8 +25,8 @@ CANCEL_THRESHOLD_DAYS = 14
 # 仅合并这些平台的爬虫输出（与 crawlers/run_all.py 的 CRAWLERS 一致）
 # 已停用：saihuitong（扫 102 域名产 0 场）、runninginchina（与 zuicool 重复）、
 #         ahotu（Cloudflare 拦截）、ihuipao（JS 渲染）
-ENABLED_PLATFORMS = {'zuicool', 'utmb'}
-PLATFORM_PRIORITY = ['zuicool', 'utmb']
+ENABLED_PLATFORMS = {'zuicool', 'utmb', 'torx', 'skyrunning'}
+PLATFORM_PRIORITY = ['zuicool', 'utmb', 'torx', 'skyrunning']
 
 
 def parse_races_text(src):
@@ -65,6 +66,11 @@ def parse_races_text(src):
                     item['time'] = gm.group(3)
                 dists.append(item)
             r['distances'] = dists
+        # 解析 tags 数组
+        tm = _re.search(r'tags:\[([^\]]*)\]', stripped)
+        if tm:
+            r['tags'] = [json.loads('"' + x + '"')
+                         for x in _re.findall(r'"((?:[^"\\]|\\.)*)"', tm.group(1))]
         races.append(r)
     return races
 
@@ -142,8 +148,12 @@ def _names_similar(a, b):
     if pa and pb and pa != pb:
         return False
     na, nb = normalize_name(a.get('name', '')), normalize_name(b.get('name', ''))
-    if not na or not nb or na == nb:
+    if not na or not nb:
         return False
+    if na == nb:
+        # 规范化后同名（如「2026云丘山越野赛 by UTMB®」与「…by UTMB」）→ 同一赛事。
+        # detect_new 里同名同日期先被 `key` 判掉，这里主要给 dedupe_final 的模糊去重用。
+        return True
     if (na in nb or nb in na) and min(len(na), len(nb)) >= 6:
         return True
     from difflib import SequenceMatcher
@@ -176,7 +186,11 @@ def dedupe_final(src):
         es.sort(key=_richness, reverse=True)
         chosen = []
         for e in es:
-            if any(_names_similar(e, k) for k in chosen):
+            # 只对"不同来源"做模糊合并：模糊规则的目的是抹平跨平台的赞助商前缀/翻译差异。
+            # 同一来源在同一天、同地点出现相似名，多是同场赛事的**不同组别/不同赛事**
+            # （如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail），不能合并。
+            if any(_names_similar(e, k) and host_of(e.get('link', '')) != host_of(k.get('link', ''))
+                   for k in chosen):
                 drop.append(e)
             else:
                 chosen.append(e)
@@ -229,8 +243,8 @@ def load_crawled():
 
 
 def host_of(url):
-    """从 URL 取 hostname（小写），失败返回 ''。"""
-    m = re.match(r'https?://([^/]+)', url or '')
+    """从 URL 取 hostname（小写），失败返回 ''。排除 ?query/#fragment"""
+    m = re.match(r'https?://([^/?#]+)', url or '')
     return m.group(1).lower() if m else ''
 
 
@@ -455,7 +469,7 @@ def detect_new(existing, crawled, claimed=None):
     import re as _re
     claimed = claimed or set()
     existing_keys = set()
-    existing_links = set()  # 完整 link 用于精确去重
+    existing_links = set()  # 完整 link 用于精确去重（zuicool 的 link 是具体赛事实例，改期=同一条）
     existing_link_hosts = set()  # hostname 用于 link dedup
     existing_by_date = {}
     for e in existing:
@@ -465,12 +479,13 @@ def detect_new(existing, crawled, claimed=None):
         if e.get('link'):
             existing_links.add(e['link'].rstrip('/').lower())
         if e.get('link'):
-            host_m = _re.match(r'https?://([^/]+)', e['link'])
+            host_m = _re.match(r'https?://([^/?#]+)', e['link'])
             if host_m:
                 host = host_m.group(1)
                 if '.utmb.world' in host:
-                    # utmb 子站只取 slug 作为 key
-                    existing_link_hosts.add('utmb:' + host.split('.')[0])
+                    # utmb 子站是"赛事系列"官网（年无关）→ slug 要带日期区分届次，
+                    # 否则同一赛事 2026/2027 两届会被当成同一条
+                    existing_link_hosts.add('utmb:' + host.split('.')[0] + '|' + e.get('date', ''))
                 else:
                     existing_link_hosts.add(host)
     new_by_plat = {}
@@ -485,11 +500,21 @@ def detect_new(existing, crawled, claimed=None):
             key = (normalize_name(name), date)
             if key in existing_keys or key in new_by_plat:
                 continue
-            # 同日近似名（标点/赞助商前缀差异）也与现有重复 → 不新增
-            cand = {'name': name, 'date': date, 'province': r.get('province', '')}
-            if any(_names_similar(cand, e) for e in existing_by_date.get(date, [])):
-                continue
             link = r.get('link', '')
+            # 同日近似名（标点/赞助商前缀差异）也与现有重复 → 不新增；
+            # 但**仅当来源不同**：同源同日同地点的相似名多是不同组别/不同赛事
+            # （如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail 同日同地）
+            cand = {'name': name, 'date': date, 'province': r.get('province', '')}
+            _ch = host_of(link)
+            if any(_names_similar(cand, e) and _ch != host_of(e.get('link', ''))
+                   for e in existing_by_date.get(date, [])):
+                continue
+            # UTMB 全球站的中国/港澳台场次 → 最酷网才是权威来源。同日已有「… by UTMB」条目
+            # 即视为同一赛事（最酷的条目常缺 official 域名，认领机制兜不住，如「大蜀道100」）
+            if plat == 'utmb' and r.get('country_code') in ('CN', 'HK', 'MO', 'TW'):
+                if any('byutmb' in re.sub(r'\s+', '', e.get('name') or '').lower()
+                       for e in existing_by_date.get(date, [])):
+                    continue
             # 同 link 必为同一赛事（名称标点/后缀差异也算重复）
             nlink = link.rstrip('/').lower()
             if nlink and (nlink in existing_links or nlink in new_links_used):
@@ -500,10 +525,10 @@ def detect_new(existing, crawled, claimed=None):
             # 该条目的官方站点已被别的平台条目认领（如 zuicool 已有中文条目）→ 跳过
             if host and host in claimed:
                 continue
-            host_m = _re.match(r'https?://([^/]+)', link)
+            host_m = _re.match(r'https?://([^/?#]+)', link)
             host_key = ''
             if host_m and '.utmb.world' in host_m.group(1):
-                host_key = 'utmb:' + host_m.group(1).split('.')[0]
+                host_key = 'utmb:' + host_m.group(1).split('.')[0] + '|' + date
                 if host_key in existing_link_hosts or host_key in new_link_hosts_used:
                     continue
             if host_key:
@@ -522,7 +547,8 @@ def drop_claimed_duplicates(existing, claimed, src):
     new_src = src
     for e in existing:
         h = host_of(e.get('link', ''))
-        if h and '.utmb.world' in h and h in claimed:
+        # 自我认领（official == 自己 link 的 host）不算被"别人"认领，否则会把自己删掉
+        if h and '.utmb.world' in h and h in claimed and (e.get('official') or '').lower() != h:
             raw = e['_raw']
             if (raw + '\n') in new_src:
                 new_src = new_src.replace(raw + '\n', '', 1)
@@ -551,7 +577,10 @@ def insert_new_races(src, new_by_plat):
         new_src = head + '\n  ' + body + '\n];' + tail
     else:
         # head 以最后一个对象的 } 结尾 → 追加 ,\n  <新项>\n];
-        new_src = head + ',\n  ' + body + '\n];' + tail
+        # 若 head 已带尾逗号（例如上次插入后删行留下的），不要再补，否则会产出 ",," → JS 数组空洞
+        if not head.endswith(','):
+            head += ','
+        new_src = head + '\n  ' + body + '\n];' + tail
     return new_src, len(items)
 
 
@@ -615,6 +644,60 @@ def sync_city_province(existing, crawled, src):
     return new_src, changed
 
 
+def sync_name(existing, crawled, src):
+    """已有条目的名称若是 zuicool 当前名称的"子串"（赛事被补全/加了系列名）→ 更新为爬虫名。
+    例：「2026 FUGA深圳100跑山赛」→「…暨TORX®中国站」。
+    只在爬虫名更长、且规范化后包含现有名时触发，避免误改。"""
+    from _lib.parse import normalize_name
+    by_date = {}
+    for plat, races in crawled.items():
+        if plat != 'zuicool':
+            continue
+        for r in races:
+            if r.get('date'):
+                by_date.setdefault(r['date'], []).append(r)
+    new_src = src
+    changed = []
+    for e in existing:
+        ne = normalize_name(e['name'])
+        if len(ne) < 6:
+            continue
+        for c in by_date.get(e.get('date', ''), []):
+            if c.get('province') and e.get('province') and c['province'] != e['province']:
+                continue
+            nc = normalize_name(c.get('name', ''))
+            if nc and nc != ne and ne in nc and len(nc) > len(ne):
+                raw = e['_raw']
+                new_raw = re.sub(r'name:"((?:[^"\\]|\\.)*)"',
+                                 'name:' + json.dumps(c['name'], ensure_ascii=False), raw, count=1)
+                if new_raw != raw:
+                    new_src = new_src.replace(raw, new_raw, 1)
+                    changed.append(f"{e['name'][:18]} → {c['name'][:26]}")
+                break
+    return new_src, changed
+
+
+def sync_torx_tags(existing, src):
+    """名称含 TORX 的条目补 'torx' 标签。
+    tag 只在新增时写入、且 zuicool 侧 tags 是粘性的（沿用上次输出），历史条目不会自动补上。"""
+    new_src = src
+    changed = []
+    for e in existing:
+        if 'torx' in (e.get('tags') or []):
+            continue
+        if not any(kw in e['name'].lower() for kw in TORX_KW):
+            continue
+        raw = e['_raw']
+        newtags = (e.get('tags') or []) + ['torx']
+        new_raw = re.sub(r'tags:\[[^\]]*\]',
+                         'tags:[' + ','.join(json.dumps(t, ensure_ascii=False) for t in newtags) + ']',
+                         raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            changed.append(f"{e['name'][:24]}: +torx")
+    return new_src, changed
+
+
 def sync_reg_deadline(existing, crawled, src):
     """把列表卡片上的"报名截止"同步到已有条目（新增/更新/删除）。
     该字段来自列表卡片，不依赖详情页，因此每天都能拿到最新值。"""
@@ -659,7 +742,7 @@ def merge_existing_distances(existing, crawled, src):
     for plat, races in crawled.items():
         for r in races:
             if r.get('link'):
-                m = _re.match(r'https?://([^/]+)', r['link'])
+                m = _re.match(r'https?://([^/?#]+)', r['link'])
                 if m:
                     by_link.setdefault(m.group(1), []).append((plat, r))
             k = (normalize_name(r.get('name', '')), r.get('date', ''))
@@ -671,7 +754,7 @@ def merge_existing_distances(existing, crawled, src):
         # 找 matched（返回 (平台, race)）
         matched = None
         if e.get('link'):
-            m = _re.match(r'https?://([^/]+)', e['link'])
+            m = _re.match(r'https?://([^/?#]+)', e['link'])
             if m:
                 cands = by_link.get(m.group(1), [])
                 for cplat, c in cands:
@@ -781,6 +864,16 @@ def main():
     new_src, loc_fixed = sync_city_province(existing, crawled, new_src)
     if loc_fixed:
         print(f'[merge] 修正省份/城市 {len(loc_fixed)} 场: {loc_fixed[:5]}')
+
+    # 1.26 同步名称（zuicool 列表名更长且包含现有名 → 以爬虫为准）
+    new_src, name_fixed = sync_name(existing, crawled, new_src)
+    if name_fixed:
+        print(f'[merge] 修正名称 {len(name_fixed)} 场: {name_fixed[:3]}')
+
+    # 1.27 名称含 TORX 的条目补 'torx' 标签
+    new_src, torx_fixed = sync_torx_tags(existing, new_src)
+    if torx_fixed:
+        print(f'[merge] 补 TORX 标签 {len(torx_fixed)} 场: {torx_fixed[:3]}')
 
     # 1.3 同步"报名截止"（来自列表卡片）
     new_src, dl_fixed = sync_reg_deadline(existing, crawled, new_src)
