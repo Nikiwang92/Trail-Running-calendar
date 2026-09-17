@@ -1,12 +1,12 @@
 # 项目结构与流程 — 越野赛事日历
 
-本文件是这个项目的**详细上手文档**（结构 / 流程 / 改动约定），给 Claude Code 和人类协作者共用。改动项目结构/流程时，请同步更新本文件**和根目录 `CLAUDE.md`（两份内容必须逐字一致）**。简介与用法见根目录 `README.md`（相对链接在 `project/` 与根目录下指向不同，故不写成链接）。
+本文件是这个项目的**详细上手文档**（结构 / 流程 / 改动约定），给 Claude Code 和人类协作者共用。改动项目结构/流程时，请同步更新本文件**和根目录 `CLAUDE.md`（两份内容必须逐字一致）**，并在 [`version/version.md`](../version/version.md) **按日期追加一条重大改动记录**（纯粹的文件位置调整不计入）。简介与用法见根目录 `README.md`（相对链接在 `project/` 与根目录下指向不同，故不写成链接）。
 
 ---
 
 ## 一、项目目标
 
-每天自动抓取**全量**中国越野赛事（含 2027+）→ 存到唯一数据源 `_race_data.js` → 渲染成 `index.html`（Bauhaus 风格）→ 部署到 GitHub Pages。
+每天自动抓取**全量**越野赛事（以中国大陆为主，含港澳台/海外，以及 TORX® / Skyrunning / UTMB World Series 等国际场次；含 2027+）→ 存到唯一数据源 `_race_data.js` → 渲染成 `index.html`（Bauhaus 风格）→ 部署到 GitHub Pages。
 
 **三条铁律**：
 1. **全量**：每天重抓所有能抓的平台，不做人工筛选。
@@ -69,6 +69,7 @@ F:\RUN\
 ├── _race_data.js              # ★ 唯一权威数据源（CommonJS module.exports=[...]）
 ├── index.html                 # ★ 展示页（Bauhaus，shim 模式读数据）
 ├── daily_update.js            # ★ 重算 status + 同步 HTML
+├── version/version.md         # ★ 版本记录（按日期倒序，只记重大改动，不含纯文件位置调整）
 ├── crawlers/
 │   ├── run_all.py             # 编排器：顺序跑启用爬虫
 │   ├── zuicool.py             # 主力爬虫
@@ -98,7 +99,9 @@ F:\RUN\
 ├── domains.json               # saihuitong 爬虫的域名清单（103 个运营方）
 ├── requirements.txt           # requests / bs4 / pandas / lxml / openpyxl
 ├── template/index_Bauhaus.html # 设计模板（备用，不参与构建）
-├── prompt/*.txt               # 各设计风格提示词（gitignore）
+├── docs/
+│   ├── preview.png            # README 预览图（2832×2024）
+│   └── prompt/*.txt           # 各设计风格提示词
 └── .github/workflows/daily.yml # 每日自动化
 ```
 
@@ -386,7 +389,7 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 ## 十一、关键约定（改代码前必读）
 
 1. **不要硬编码赛事数据**。任何赛事信息都应来自爬虫，绝不手写进 `_race_data.js` 或 HTML。
-2. **改结构先改本文件**。新增/删除爬虫、改变数据模型、调整流程，同步更新本文件（`project/project.md`）**和根目录 `CLAUDE.md`——两份必须保持一致**（`cp project/project.md CLAUDE.md`）。
+2. **改结构先改本文件**。新增/删除爬虫、改变数据模型、调整流程，同步更新本文件（`project/project.md`）**和根目录 `CLAUDE.md`——两份必须保持一致**（`cp project/project.md CLAUDE.md`），并在 `version/version.md` 按日期追加一条记录——**只记重大改动**（新增/停用数据源、改数据模型或流程、UI 功能、批量数据修复等）；**单纯的文件位置调整不计入**。
 3. **tags 只从"赛事自身内容"推断**（名称 + 详情页自身区块），绝不扫整页——侧栏有别的赛事。
 4. **组别只取官方整数 K**（`100K/70K`），丢弃小数实际距离（`102.85km`）。
 5. **距离排序统一降序**；status 只有 `past/upcoming/cancelled` 三个值。
