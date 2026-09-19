@@ -2,43 +2,49 @@
   "超级四梁越野训练赛": {
     "name": "2026超级四梁越野训练赛",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "破云而上粤西之巅": {
     "name": "『破云而上』粤西之巅越野赛",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "漓江": {
     "name": "漓江越野跑",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "xterra太湖越野挑战赛苏州站": {
     "name": "XTERRA太湖越野挑战赛苏州站",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "京西小红点西山越野荟": {
     "name": "2026京西·小红点 西山越野荟",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "第十二届梅里100极限耐力赛": {
     "name": "2026第十二届梅里100极限耐力赛",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
   },
   "朱雀50暨四神兽超级越野赛朱雀站": {
     "name": "朱雀50暨四神兽超级越野赛·朱雀站",
     "first_missing": "2026-09-11",
-    "last_missing": "2026-09-18",
-    "days": 8
+    "last_missing": "2026-09-19",
+    "days": 9
+  },
+  "澜跑2026贺兰山": {
+    "name": "澜跑·2026贺兰山超级越野赛",
+    "first_missing": "2026-09-19",
+    "last_missing": "2026-09-19",
+    "days": 1
   }
 }
