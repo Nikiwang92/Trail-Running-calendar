@@ -20,6 +20,9 @@ jobs:
     env:
       PYTHONIOENCODING: utf-8
       LANG: en_US.UTF-8
+      # runner 默认 UTC：cron 在北京 03:00 触发时 UTC 还停在前一天，
+      # 会让「今天」整体晚一天（const today、赛事状态全错）。固定成北京时间。
+      TZ: Asia/Shanghai
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,7 +62,7 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore(daily): update races for $(date -u +%Y-%m-%d)"
+            git commit -m "chore(daily): update races for $(date +%F)"
             git push
           fi
 

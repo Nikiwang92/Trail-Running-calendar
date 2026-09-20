@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 年全国山地越野赛事日历 — Bauhaus</title>
+    <title>全国山地越野赛事日历</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap');
 
@@ -35,21 +35,21 @@
         /* ===== Hero ===== */
         .hero {
             background: var(--white);
-            padding: 70px 20px 50px;
+            padding: 28px 20px 20px;
             text-align: center;
             position: relative;
             overflow: hidden;
-            border-bottom: 4px solid var(--border);
+            border-bottom: 3px solid var(--border);
         }
 
         /* 背景几何装饰形状 */
         .hero::before {
             content: '';
             position: absolute;
-            top: -60px;
+            top: -70px;
             right: -40px;
-            width: 180px;
-            height: 180px;
+            width: 150px;
+            height: 150px;
             background: var(--yellow);
             border-radius: 50%;
             border: 4px solid var(--border);
@@ -58,10 +58,10 @@
         .hero::after {
             content: '';
             position: absolute;
-            bottom: -50px;
+            bottom: -60px;
             left: 6%;
-            width: 120px;
-            height: 120px;
+            width: 100px;
+            height: 100px;
             background: var(--red);
             border: 4px solid var(--border);
             transform: rotate(45deg);
@@ -72,20 +72,20 @@
             z-index: 0;
         }
         .geo-deco.tri {
-            top: 30px;
+            top: 22px;
             left: 8%;
             width: 0;
             height: 0;
-            border-left: 30px solid transparent;
-            border-right: 30px solid transparent;
-            border-bottom: 52px solid var(--blue);
+            border-left: 24px solid transparent;
+            border-right: 24px solid transparent;
+            border-bottom: 42px solid var(--blue);
             filter: drop-shadow(3px 3px 0px #121212);
         }
 
         .hero h1 {
-            font-size: 2.4rem;
+            font-size: 1.9rem;
             font-weight: 900;
-            margin-bottom: 14px;
+            margin-bottom: 8px;
             position: relative;
             z-index: 1;
             text-transform: uppercase;
@@ -117,8 +117,8 @@
         .stats-bar {
             display: flex;
             justify-content: center;
-            gap: 16px;
-            margin-top: 34px;
+            gap: 14px;
+            margin-top: 18px;
             position: relative;
             z-index: 1;
             flex-wrap: wrap;
@@ -126,12 +126,12 @@
 
         .stat-item {
             text-align: center;
-            padding: 18px 22px;
+            padding: 10px 18px;
             background: var(--yellow);
             border: 3px solid var(--border);
             box-shadow: var(--shadow-sm);
             transition: all 0.2s ease-out;
-            min-width: 120px;
+            min-width: 108px;
         }
 
         .stat-item:nth-child(2) {
@@ -149,7 +149,7 @@
         }
 
         .stat-num {
-            font-size: 2.4rem;
+            font-size: 1.7rem;
             font-weight: 900;
             line-height: 1;
             display: block;
@@ -175,150 +175,282 @@
             top: 0;
             background: var(--bg);
             z-index: 100;
-            border-bottom: 4px solid var(--border);
+            border-bottom: 3px solid var(--border);
             margin: 0 -20px;
             padding: 0 20px;
         }
 
         .toolbar {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
             align-items: center;
-            padding: 18px 0;
+            padding: 6px 0 4px;
         }
 
         .search-box {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px 16px;
+            flex: 0 1 320px;
+            min-width: 140px;
+            padding: 5px 10px;
             border-radius: 0;
-            border: 3px solid var(--border);
+            border: 2px solid var(--border);
             background: var(--white);
             color: var(--fg);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             font-weight: 500;
             outline: none;
-            transition: all 0.2s ease-out;
+            transition: all 0.15s ease-out;
             font-family: 'Outfit', sans-serif;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
         }
 
         .search-box:focus {
-            box-shadow: var(--shadow-md);
-            transform: translate(-2px, -2px);
+            box-shadow: 3px 3px 0 0 var(--border);
+            transform: translate(-1px, -1px);
+        }
+
+        /* 筛选折叠按钮（搜索框右侧，显眼） */
+        .filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+            padding: 5px 12px;
+            border: 2px solid var(--border);
+            background: var(--yellow);
+            color: var(--fg);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            box-shadow: 2px 2px 0 0 var(--border);
+            white-space: nowrap;
+            transition: all 0.15s ease-out;
+            margin-left: auto;
+        }
+
+        .filter-toggle:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 0 var(--border);
+        }
+
+        .filter-toggle:active {
+            transform: translate(1px, 1px);
+            box-shadow: none;
+        }
+
+        .filter-toggle .ft-state {
+            font-weight: 700;
+            font-size: 0.66rem;
+            letter-spacing: 0.02em;
+            background: var(--fg);
+            color: var(--white);
+            padding: 1px 7px;
+        }
+
+        .filter-toggle .ft-state:empty {
+            display: none;
+        }
+
+        .filter-toggle .ft-arrow {
+            font-size: 0.9rem;
+        }
+
+        .filter-panel.collapsed {
+            display: none;
         }
 
         .filter-btn {
-            padding: 10px 18px;
+            padding: 5px 11px;
             border-radius: 0;
-            border: 3px solid var(--border);
+            border: 2px solid var(--border);
             background: var(--white);
             color: var(--fg);
             cursor: pointer;
-            font-size: 0.82rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            transition: all 0.2s ease-out;
+            letter-spacing: 0.04em;
+            transition: all 0.15s ease-out;
             white-space: nowrap;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
             font-family: 'Outfit', sans-serif;
         }
 
         .filter-btn:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: var(--shadow-md);
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 0 var(--border);
         }
 
         .filter-btn:active {
-            transform: translate(2px, 2px);
+            transform: translate(1px, 1px);
             box-shadow: none;
         }
 
         .filter-btn.active {
             background: var(--red);
             color: var(--white);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
         }
 
-        .month-nav {
+        .filter-nav {
+            display: flex;
+            gap: 6px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            align-items: center;
+            padding: 0 0 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-nav .filter-btn {
+            flex: 0 0 auto;
+        }
+
+        .year-nav {
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
             align-items: center;
-            padding: 0 0 14px;
+            padding: 0 0 5px;
         }
 
-        .month-btn {
-            min-width: 44px;
-            padding: 9px 12px;
+        .year-btn {
+            min-width: 46px;
+            padding: 5px 10px;
             border-radius: 0;
-            border: 3px solid var(--border);
+            border: 2px solid var(--border);
             background: var(--white);
             color: var(--fg);
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.03em;
+            transition: all 0.15s ease-out;
+            box-shadow: 2px 2px 0 0 var(--border);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .year-btn:hover {
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 0 var(--border);
+        }
+
+        .year-btn:active {
+            transform: translate(1px, 1px);
+            box-shadow: none;
+        }
+
+        .year-btn.active {
+            background: var(--yellow);
+            color: var(--fg);
+        }
+
+        .month-nav {
+            display: flex;
+            gap: 5px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            align-items: center;
+            padding: 0 0 5px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .month-nav .month-btn {
+            flex: 0 0 auto;
+        }
+
+        .month-btn {
+            min-width: 34px;
+            padding: 4px 7px;
+            border-radius: 0;
+            border: 2px solid var(--border);
+            background: var(--white);
+            color: var(--fg);
+            cursor: pointer;
+            font-size: 0.72rem;
             font-weight: 700;
-            transition: all 0.2s ease-out;
-            box-shadow: var(--shadow-sm);
+            transition: all 0.15s ease-out;
+            box-shadow: 2px 2px 0 0 var(--border);
             font-family: 'Outfit', sans-serif;
         }
 
         .month-btn:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: var(--shadow-md);
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 0 var(--border);
         }
 
         .month-btn:active {
-            transform: translate(2px, 2px);
+            transform: translate(1px, 1px);
             box-shadow: none;
         }
 
         .month-btn.active {
             background: var(--blue);
             color: var(--white);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
         }
 
         .province-nav {
             display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+            gap: 5px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
             align-items: center;
-            padding: 0 0 16px;
+            padding: 0 0 6px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .province-nav .province-btn {
+            flex: 0 0 auto;
+        }
+
+        /* 横向滚动的筛选行：细滚动条（可见、可拖动） */
+        .filter-nav, .month-nav, .province-nav {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #d5d5d5;
+        }
+        .filter-nav::-webkit-scrollbar, .month-nav::-webkit-scrollbar, .province-nav::-webkit-scrollbar {
+            height: 6px;
+        }
+        .filter-nav::-webkit-scrollbar-thumb, .month-nav::-webkit-scrollbar-thumb, .province-nav::-webkit-scrollbar-thumb {
+            background: #888;
+        }
+        .filter-nav::-webkit-scrollbar-track, .month-nav::-webkit-scrollbar-track, .province-nav::-webkit-scrollbar-track {
+            background: #d5d5d5;
         }
 
         .province-btn {
-            min-width: 56px;
-            padding: 8px 12px;
+            min-width: 44px;
+            padding: 4px 8px;
             border-radius: 0;
-            border: 3px solid var(--border);
+            border: 2px solid var(--border);
             background: var(--white);
             color: var(--fg);
             cursor: pointer;
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-weight: 700;
-            transition: all 0.2s ease-out;
+            transition: all 0.15s ease-out;
             white-space: nowrap;
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
             font-family: 'Outfit', sans-serif;
         }
 
         .province-btn:hover {
-            transform: translate(-2px, -2px);
-            box-shadow: var(--shadow-md);
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0 0 var(--border);
         }
 
         .province-btn:active {
-            transform: translate(2px, 2px);
+            transform: translate(1px, 1px);
             box-shadow: none;
         }
 
         .province-btn.active {
             background: var(--fg);
             color: var(--white);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 2px 2px 0 0 var(--border);
         }
 
         /* ===== Month section ===== */
@@ -487,6 +619,16 @@
             color: var(--white);
         }
 
+        .tag-torx {
+            background: var(--blue);
+            color: var(--white);
+        }
+
+        .tag-skyrunning {
+            background: #6A1B9A;
+            color: var(--white);
+        }
+
         .tag-distance {
             background: var(--fg);
             color: var(--white);
@@ -536,13 +678,36 @@
         }
 
         .tag-status-open {
-            background: var(--yellow);
-            color: var(--fg);
+            background: #4CAF50;
+            color: var(--white);
         }
 
         .tag-status-closed {
             background: var(--red);
             color: var(--white);
+        }
+
+        .tag-status-cancelled {
+            background: #888;
+            color: var(--white);
+        }
+
+        .tag-reg-open {
+            background: #2E7D32;
+            color: var(--white);
+        }
+
+        .tag-reg-closed {
+            background: #9E9E9E;
+            color: var(--white);
+        }
+
+        .race-card.cancelled {
+            opacity: 0.55;
+        }
+
+        .race-card.cancelled::after {
+            background: #888;
         }
 
         .tag-status-upcoming {
@@ -631,6 +796,34 @@
             font-weight: 500;
         }
 
+        .repo-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 18px;
+            padding: 7px 14px;
+            border: 2px solid var(--white);
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            word-break: break-all;
+            transition: all 0.15s ease-out;
+        }
+
+        .repo-link:hover {
+            background: var(--yellow);
+            border-color: var(--yellow);
+            color: var(--fg);
+            transform: translate(-2px, -2px);
+        }
+
+        .repo-icon {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+        }
+
         #backToTop {
             position: fixed;
             bottom: 24px;
@@ -671,12 +864,15 @@
         }
 
         @media (max-width: 768px) {
-            .hero h1 { font-size: 1.9rem; }
-            .stats-bar { gap: 10px; }
-            .stat-item { min-width: 96px; padding: 14px 12px; }
-            .stat-num { font-size: 1.9rem; }
+            html { font-size: 87.5%; }
+            .hero h1 { font-size: 1.5rem; }
+            .stats-bar { gap: 8px; }
+            .stat-item { min-width: 88px; padding: 8px 10px; }
+            .stat-num { font-size: 1.4rem; }
             .race-grid { grid-template-columns: 1fr; }
             .toolbar { flex-direction: column; align-items: stretch; }
+            .search-box { flex: none; }
+            .filter-toggle { margin-left: 0; justify-content: center; }
             .filter-btn { text-align: center; }
             .race-card { border-width: 2px; box-shadow: var(--shadow-sm); }
             #backToTop {
@@ -693,7 +889,7 @@
 
 <div class="hero">
     <div class="geo-deco tri"></div>
-    <h1>2026 全国山地越野<br><span class="accent">赛事日历</span></h1>
+    <h1>全国山地越野<br><span class="accent">赛事日历</span></h1>
     <p>Trail Running Events 2026</p>
     <div class="stats-bar">
         <div class="stat-item">
@@ -714,16 +910,33 @@
 <div class="container">
     <div class="sticky-nav">
     <div class="toolbar">
-        <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...">
+        <input type="text" class="search-box" id="searchInput" placeholder="搜索赛事名称、地点、组别...（回车确认）">
+        <button class="filter-toggle" id="filterToggle" type="button" aria-expanded="true">
+            <span class="ft-label">筛选条件</span>
+            <span class="ft-state" id="ftState"></span>
+            <span class="ft-arrow" id="ftArrow">▴</span>
+        </button>
+    </div>
+    <div class="filter-panel" id="filterPanel">
+    <div class="filter-nav" data-group="status">
         <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="upcoming">未开始</button>
+        <button class="filter-btn" data-filter="open">进行中</button>
         <button class="filter-btn" data-filter="past">已结束</button>
+    </div>
+    <div class="filter-nav" data-group="tag">
+        <button class="filter-btn active" data-filter="all">全部</button>
         <button class="filter-btn" data-filter="utmb">UTMB</button>
+        <button class="filter-btn" data-filter="torx">TORX</button>
+        <button class="filter-btn" data-filter="skyrunning">Skyrunning</button>
         <button class="filter-btn" data-filter="golden">黄金联赛</button>
         <button class="filter-btn" data-filter="itra">ITRA</button>
         <button class="filter-btn" data-filter="youth">青少年</button>
         <button class="filter-btn" data-filter="training">训练赛</button>
         <button class="filter-btn" data-filter="100k">100K+</button>
+    </div>
+    <div class="year-nav">
+        <button class="year-btn active" data-year="all">全部</button>
     </div>
     <div class="month-nav">
         <button class="month-btn active" data-month="all">全部</button>
@@ -743,6 +956,7 @@
 
     <div class="province-nav">
         <button class="province-btn active" data-province="all">全部省份</button>
+    </div>
     </div>
     </div>
 
@@ -777,7 +991,21 @@
                 <div class="link-icon">&#x1F3D4;</div>
                 <div class="link-info">
                     <div class="link-name">UTMB Live</div>
-                    <div class="link-desc">UTMB世界系列赛官方日历</div>
+                    <div class="link-desc">UTMB 世界系列赛官方日历（全球）</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://www.torxtrail.com/" target="_blank">
+                <div class="link-icon">&#x26F0;&#xFE0F;</div>
+                <div class="link-info">
+                    <div class="link-name">TORX®</div>
+                    <div class="link-desc">意大利奥斯塔谷系列（巨人之旅等）</div>
+                </div>
+            </a>
+            <a class="link-item" href="https://www.skyrunning.com/calendar/" target="_blank">
+                <div class="link-icon">&#x1F324;&#xFE0F;</div>
+                <div class="link-info">
+                    <div class="link-name">Skyrunning</div>
+                    <div class="link-desc">ISF 国际天空跑联合会官方日历</div>
                 </div>
             </a>
             <a class="link-item" href="https://www.ihuipao.com/race" target="_blank">
@@ -799,8 +1027,12 @@
 </div>
 
 <footer>
-    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月10日</p>
+    <p>数据来源：最酷、搜狐赛事日历、Ahotu、UTMB官方、跑IN中国等平台 | 更新时间：2026年9月20日</p>
     <p style="margin-top:8px;">部分赛事日期和报名信息可能调整，请以各赛事官方公告为准</p>
+    <a class="repo-link" href="https://github.com/Nikiwang92/Trail-Running-calendar" target="_blank" rel="noopener">
+        <svg class="repo-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.4 7.4 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A7.995 7.995 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>github.com/Nikiwang92/Trail-Running-calendar</span>
+    </a>
 </footer>
 
 <script>
@@ -811,10 +1043,13 @@ var module = {exports: {}};
 <script>
 const races = module.exports;
 
-// 收集所有唯一省份，按赛事数从多到少排序（相同时按省份名升序）
+// 收集所有唯一省份：大陆省份按赛事数降序；港澳台/海外 统一排到最后
+const HKMT = ['香港', '澳门', '台湾', '海外'];
 const provinceCounts = {};
 races.forEach(r => { if (r.province) provinceCounts[r.province] = (provinceCounts[r.province] || 0) + 1; });
 const provinces = Object.keys(provinceCounts).sort((a, b) => {
+    const ah = HKMT.includes(a), bh = HKMT.includes(b);
+    if (ah !== bh) return ah ? 1 : -1;
     if (provinceCounts[b] !== provinceCounts[a]) return provinceCounts[b] - provinceCounts[a];
     return a.localeCompare(b, 'zh-CN');
 });
@@ -837,6 +1072,23 @@ provinces.filter(p => p !== '全部省份').forEach(province => {
     provinceBtns.appendChild(btn);
 });
 
+// 年份筛选：从数据里取所有年份，升序（全部 + 2026 + 2027 …）
+const years = [...new Set(races.map(r => (r.date || '').slice(0, 4)).filter(y => /^\d{4}$/.test(y)))].sort();
+const yearNav = document.querySelector('.year-nav');
+yearNav.innerHTML = '';
+const yearAll = document.createElement('button');
+yearAll.className = 'year-btn active';
+yearAll.dataset.year = 'all';
+yearAll.textContent = '全部';
+yearNav.appendChild(yearAll);
+years.forEach(y => {
+    const b = document.createElement('button');
+    b.className = 'year-btn';
+    b.dataset.year = y;
+    b.textContent = y;
+    yearNav.appendChild(b);
+});
+
 const monthNames = {
     1: { name: "一月 January", icon: "❄️" },
     2: { name: "二月 February", icon: "🧧" },
@@ -852,7 +1104,7 @@ const monthNames = {
     12: { name: "十二月 December", icon: "🎿" },
 };
 
-const today = new Date('2026-09-10');
+const today = new Date('2026-09-20');
 
 function formatDate(dateStr) {
     const d = new Date(dateStr);
@@ -860,9 +1112,13 @@ function formatDate(dateStr) {
 }
 
 function getStatusFromRace(race) {
-    const raceDate = new Date(race.date);
-    if (raceDate < today) return 'past';
-    return 'upcoming';
+    if (race.status === 'cancelled') return 'cancelled';
+    // 按「赛程区间」判断：今天落在 [date, endDate] 之内 → 进行中
+    const start = new Date(race.date);
+    const end = new Date(race.endDate || race.date);
+    if (today < start) return 'upcoming';   // 还没开始
+    if (today > end) return 'past';         // 已经结束
+    return 'open';                          // 包含今天 → 进行中（单日赛当天也算）
 }
 
 function renderRaces(filteredRaces) {
@@ -903,7 +1159,7 @@ function renderRaces(filteredRaces) {
         grouped[month].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(race => {
             const status = getStatusFromRace(race);
             const card = document.createElement('div');
-            card.className = `race-card ${status === 'past' ? 'past' : ''}`;
+            card.className = `race-card ${status === 'past' ? 'past' : ''} ${status === 'cancelled' ? 'cancelled' : ''}`;
 
             let dateText = formatDate(race.date);
             if (race.endDate) {
@@ -912,12 +1168,16 @@ function renderRaces(filteredRaces) {
 
             let tagsHTML = '';
             if (race.tags.includes('utmb')) tagsHTML += '<span class="tag tag-utmb">UTMB</span>';
+            if (race.tags.includes('torx')) tagsHTML += '<span class="tag tag-torx">TORX</span>';
+            if (race.tags.includes('skyrunning')) tagsHTML += '<span class="tag tag-skyrunning">Skyrunning</span>';
             if (race.tags.includes('golden')) tagsHTML += '<span class="tag tag-golden">黄金联赛</span>';
             if (race.tags.includes('itra')) tagsHTML += '<span class="tag tag-itra">ITRA</span>';
 
             let statusTagHTML = '';
             if (status === 'past') {
                 statusTagHTML = '<span class="tag tag-status-done">已结束</span>';
+            } else if (status === 'cancelled') {
+                statusTagHTML = '<span class="tag tag-status-cancelled">已取消</span>';
             } else if (status === 'upcoming') {
                 statusTagHTML = '<span class="tag tag-status-upcoming">未开始</span>';
             } else if (status === 'open') {
@@ -956,6 +1216,19 @@ function renderRaces(filteredRaces) {
                 wechatHTML = `<div class="race-wechat"><span class="wechat-icon">💬</span>公众号：<span class="wechat-name">${race.wechat}</span></div>`;
             }
 
+            // 报名截止（来自列表卡片；未过截止时间 → 报名中）
+            let regHTML = '';
+            if (race.regDeadline) {
+                const dl = new Date(race.regDeadline.replace(' ', 'T'));
+                if (!isNaN(dl)) {
+                    const open = dl >= today;
+                    const pad = n => String(n).padStart(2, '0');
+                    const dlText = `${dl.getMonth() + 1}月${dl.getDate()}日 ${pad(dl.getHours())}:${pad(dl.getMinutes())}`;
+                    regHTML = `<div class="race-meta-item"><span class="icon">📝</span> 报名截止：${dlText} `
+                        + `<span class="tag ${open ? 'tag-reg-open' : 'tag-reg-closed'}">${open ? '报名中' : '已截止'}</span></div>`;
+                }
+            }
+
             card.innerHTML = `
                 ${status === 'past' ? '<span class="past-label">已结束</span>' : ''}
                 <span class="race-date-badge">${dateText}</span>
@@ -965,7 +1238,7 @@ function renderRaces(filteredRaces) {
                 </div>
                 <div class="race-meta">
                     <div class="race-meta-item"><span class="icon">📍</span> ${race.province}·${race.city}</div>
-                    <div class="race-meta-item"><span class="icon">📅</span> ${dateText}</div>
+                    ${regHTML}
                     ${distHTML}
                 </div>
                 <div class="race-tags">${tagsHTML}</div>
@@ -989,43 +1262,54 @@ function updateStats() {
     document.getElementById('upcomingCount').textContent = upcoming;
 }
 
+function groupActive(group) {
+    const nav = document.querySelector(`.filter-nav[data-group="${group}"]`);
+    return [...nav.querySelectorAll('.filter-btn.active')].map(b => b.dataset.filter);
+}
+
 function applyFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+    const searchTerm = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+    // 状态行：单选，值 ∈ {all, upcoming, past}
+    const statusVal = groupActive('status')[0] || 'all';
+    // 标签行：多选，"全部" 时视为无标签限制
+    const tagSel = groupActive('tag').filter(f => f !== 'all');
+    const activeYear = document.querySelector('.year-btn.active').dataset.year;
     const activeMonth = document.querySelector('.month-btn.active').dataset.month;
     const activeProvince = document.querySelector('.province-btn.active').dataset.province;
 
     let filtered = races.filter(race => {
-        const distStr = race.distances.map(d => typeof d === 'object' ? d.d : d).join(' ');
-        const searchMatch = !searchTerm ||
-            race.name.toLowerCase().includes(searchTerm) ||
-            race.province.toLowerCase().includes(searchTerm) ||
-            race.city.toLowerCase().includes(searchTerm) ||
-            distStr.toLowerCase().includes(searchTerm);
+        const name = (race.name || '').toLowerCase();
+        const province = (race.province || '').toLowerCase();
+        const city = (race.city || '').toLowerCase();
+        const dists = race.distances || [];
+        const tags = race.tags || [];
+        const distStr = dists.map(d => (typeof d === 'object' ? d.d : d)).join(' ').toLowerCase();
 
-        if (!searchMatch) return false;
-
-        const status = getStatusFromRace(race);
-
-        switch(activeFilter) {
-            case 'upcoming': return status === 'upcoming';
-            case 'past': return status === 'past';
-            case 'utmb': return race.tags.includes('utmb');
-            case 'golden': return race.tags.includes('golden');
-            case 'itra': return race.tags.includes('itra');
-            case 'youth': return race.tags.includes('youth');
-            case 'training': return race.tags.includes('training');
-            case '100k': return race.distances.some(d => parseInt(typeof d === 'object' ? d.d : d) >= 100);
-            default: return true;
+        if (searchTerm &&
+            !(name.includes(searchTerm) || province.includes(searchTerm) ||
+              city.includes(searchTerm) || distStr.includes(searchTerm))) {
+            return false;
         }
+
+        if (statusVal !== 'all' && getStatusFromRace(race) !== statusVal) return false;
+
+        if (tagSel.length) {
+            const ok = tagSel.some(f => {
+                if (f === '100k') return dists.some(d => (parseInt(typeof d === 'object' ? d.d : d) || 0) >= 100);
+                return tags.includes(f);
+            });
+            if (!ok) return false;
+        }
+        return true;
     });
+
+    if (activeYear !== 'all') {
+        filtered = filtered.filter(race => (race.date || '').startsWith(activeYear));
+    }
 
     if (activeMonth !== 'all') {
         const m = parseInt(activeMonth);
-        filtered = filtered.filter(race => {
-            const raceMonth = new Date(race.date).getMonth() + 1;
-            return raceMonth === m;
-        });
+        filtered = filtered.filter(race => (new Date(race.date).getMonth() + 1) === m);
     }
 
     if (activeProvince !== 'all') {
@@ -1033,13 +1317,43 @@ function applyFilters() {
     }
 
     renderRaces(filtered);
+    if (typeof updateFilterBadge === 'function') updateFilterBadge();
 }
 
-document.getElementById('searchInput').addEventListener('input', applyFilters);
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', applyFilters);
+searchInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyFilters(); }
+});
 
-document.querySelectorAll('.filter-btn').forEach(btn => {
+// 每行独立：状态行单选，标签行多选；每行都有“全部”，选“全部”即该行只保留全部
+document.querySelectorAll('.filter-nav').forEach(nav => {
+    const single = nav.dataset.group === 'status';
+    const allBtn = nav.querySelector('.filter-btn[data-filter="all"]');
+    nav.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const f = this.dataset.filter;
+            if (single) {
+                // 单选：清掉本行其他，只留自己
+                nav.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            } else if (f === 'all') {
+                nav.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            } else {
+                if (allBtn) allBtn.classList.remove('active');
+                this.classList.toggle('active');
+                // 一个标签都没选 → 回到“全部”
+                if (!nav.querySelector('.filter-btn.active') && allBtn) allBtn.classList.add('active');
+            }
+            applyFilters();
+        });
+    });
+});
+
+document.querySelectorAll('.year-btn').forEach(btn => {
     btn.addEventListener('click', function() {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
         this.classList.add('active');
         applyFilters();
     });
@@ -1060,6 +1374,54 @@ document.querySelectorAll('.province-btn').forEach(btn => {
         applyFilters();
     });
 });
+
+// ===== 筛选面板折叠 =====
+const filterToggle = document.getElementById('filterToggle');
+const filterPanel = document.getElementById('filterPanel');
+const ftState = document.getElementById('ftState');
+const ftArrow = document.getElementById('ftArrow');
+
+function activeFilterCount() {
+    let n = 0;
+    const st = document.querySelector('.filter-nav[data-group="status"] .filter-btn.active');
+    if (st && st.dataset.filter !== 'all') n++;
+    n += [...document.querySelectorAll('.filter-nav[data-group="tag"] .filter-btn.active')]
+        .filter(b => b.dataset.filter !== 'all').length;
+    const yb = document.querySelector('.year-btn.active');
+    if (yb && yb.dataset.year !== 'all') n++;
+    const mb = document.querySelector('.month-btn.active');
+    if (mb && mb.dataset.month !== 'all') n++;
+    const pb = document.querySelector('.province-btn.active');
+    if (pb && pb.dataset.province !== 'all') n++;
+    return n;
+}
+
+function updateFilterBadge() {
+    const n = activeFilterCount();
+    const collapsed = filterPanel.classList.contains('collapsed');
+    if (collapsed) {
+        ftState.textContent = n ? `${n} 项筛选生效 · 点此展开` : '已收起 · 点此展开';
+    } else {
+        ftState.textContent = n ? `${n} 项筛选生效` : '';
+    }
+}
+
+function setFilterOpen(open) {
+    filterPanel.classList.toggle('collapsed', !open);
+    filterToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    ftArrow.textContent = open ? '▴' : '▾';
+    updateFilterBadge();
+    try { localStorage.setItem('filterOpen', open ? '1' : '0'); } catch (e) {}
+}
+
+filterToggle.addEventListener('click', function () {
+    setFilterOpen(filterPanel.classList.contains('collapsed'));
+});
+
+// 初始：恢复上次状态，默认展开（保持原样）
+let _initOpen = true;
+try { _initOpen = localStorage.getItem('filterOpen') !== '0'; } catch (e) {}
+setFilterOpen(_initOpen);
 
 updateStats();
 applyFilters();
