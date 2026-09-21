@@ -1,119 +1,145 @@
-# Trail Running Calendar 🏃⛰️
+<div align="center">
 
-A **daily auto-updating** calendar of trail running races. It crawls multiple platforms and aggregates everything into one searchable, filterable web page.
+# 🏃‍♂️⛰️ Trail Running Calendar
 
-> Data refreshes automatically every day at 00:00 (Beijing time / UTC+8). No manual maintenance needed.
+A **daily auto-updating** calendar of trail running races — crawled from multiple platforms and aggregated into one searchable, filterable web page
 
-📁 Want the **detailed project structure / internal flow**? → [`project/project.md`](./project/project.md)
+[![Auto-update](https://img.shields.io/badge/auto--update-daily%2003%3A00%20CST-2ea44f?style=flat-square)](https://github.com/Nikiwang92/Trail-Running-calendar/actions)
+[![Sources](https://img.shields.io/badge/sources-zuicool%20%7C%20UTMB%20%7C%20TORX%20%7C%20Skyrunning-1f6feb?style=flat-square)](#-data-sources)
+[![Frontend](https://img.shields.io/badge/frontend-zero%20deps%20%7C%20zero%20build-orange?style=flat-square)](#-tech-stack)
+[![Races](https://img.shields.io/badge/races-1100%2B-d02020?style=flat-square)](#-scale)
+
+[**🌐 Live site**](https://nikiwang92.github.io/Trail-Running-calendar/) &nbsp;·&nbsp;
+[**📖 Project docs**](./project/project.md) &nbsp;·&nbsp;
+[**📝 Changelog**](./version/version.md) &nbsp;·&nbsp;
+[**中文说明 →**](./README.md)
+
+</div>
 
 ![Preview](docs/preview.png)
 
-*[中文说明 →](./README.md)*
-
 ---
 
-## What is this
+## ✨ Features
 
-Trail races are scattered across platforms like Zuicool and UTMB. This project collects them into **one list** with date, location, categories, elevation gain, cut-off times, and certification tags (UTMB / Golden League / ITRA / Youth / Training race), organized by month.
-
-Currently **840+ races** for 2026, covering 29 provinces.
-
----
-
-## Live site
-
-🌐 **https://nikiwang92.github.io/Trail-Running-calendar/**
-
-> First-time setup: enable GitHub Pages under `Settings → Pages` with Source = `main` branch, root folder (see [Fork guide](#fork-your-own-calendar)).
-
----
-
-## Features
-
-- 🔍 **Search** by race name, location, or category (e.g. `100K`, `Beijing`)
-- 🏷️ **Tag filters**: UTMB / Golden League / ITRA / Youth / Training / 100K+ (combinable)
-- 📅 **Filter by status, month, and province**: Upcoming / Finished, by month, by province
-- 📊 **Race details**: every official category with its elevation gain, cut-off time, WeChat account, and registration link
-- 📱 **Responsive**: adapts to phone / tablet / desktop
-
----
-
-## Data sources
-
-| Platform | Notes |
+| | |
 |---|---|
-| [Zuicool](https://zuicool.com) | Primary source, ~95% coverage |
-| [UTMB World Series](https://www.utmb.world) | UTMB World Series China events |
-
-Data comes from public pages and is for reference only — **always check the official race announcement**.
-
----
-
-## Daily updates (automatic)
-
-Nothing for you to do — it runs every day at 03:00 Beijing time:
-
-1. **Crawl** (~1.5 min) — scans the full race list every day, and only fetches detail pages for **new** or **changed** races; a full refresh happens every 15 days
-2. **Merge** — dedupes, fills in categories, recalculates status; backs up before every update
-3. **Publish** — commits and redeploys the site
-
-To check it's healthy: `your repo → Actions → Daily Update` (a green check means all good).
+| 🔍 **Search** | Filter instantly by race name, location or category (try `100K`, `Beijing`) |
+| 🏷️ **Tag filters** | UTMB / TORX / Skyrunning / Golden League / ITRA / Youth / Training / 100K+ — combinable |
+| 📅 **Status · year · month · province** | Upcoming · **Ongoing** · Finished; 2026 / 2027; Jan–Dec; every province |
+| 📊 **Race details** | Every official category with its **elevation gain**, **cut-off time**, registration deadline, WeChat account and official link |
+| 📱 **Responsive** | Adapts to phone / tablet / desktop |
 
 ---
 
-## Local preview
+## 🌐 Live site
 
-No dependencies needed — just double-click `index.html` (data is loaded via `<script src>`, which works under `file://`).
+**<https://nikiwang92.github.io/Trail-Running-calendar/>**
 
-To modify data or run the crawlers, see the debugging section below.
+> Page blank or 404? See the Pages setup in the [Fork guide](#-fork-your-own-calendar).
 
 ---
 
-## Fork your own calendar
+## 📈 Scale
 
-Want your own version (your region / your year)? Follow these steps:
+| Metric | Value |
+|---|---|
+| Races | **1,124** (2026: 1,085 / 2027: 39) |
+| Regions | 33 provinces & regions (6 in HK/Macau/Taiwan, 233 overseas) |
+| Categories | 2,779 (1,449 with elevation gain, 876 with cut-off time) |
+
+> Numbers refresh daily — shown here for reference only.
+
+---
+
+## 🔌 Data sources
+
+| Platform | Races | Notes |
+|---|---|---|
+| [Zuicool](https://zuicool.com) | 841 | Primary source, mainland China |
+| [Skyrunning / ISF](https://www.skyrunning.com/calendar/) | 136 | Official calendar of the International Skyrunning Federation |
+| [UTMB World Series](https://live.utmb.world/zh-Hans/calendar) | 93 | Official API, both 2026 & 2027 editions, 33 countries |
+| [TORX®](https://www.torxtrail.com/) | 5 | Aosta Valley series, Italy (Tor des Géants etc.) |
+
+All data comes from public pages and is for reference only — **always check the official race announcement**.
+
+---
+
+## 🤖 Daily updates (automatic)
+
+No maintenance needed — it runs every day at **03:00 Beijing time**:
+
+```
+① Crawl    python crawlers/run_all.py     ~7 min
+           ├─ scans the full race list daily; only fetches detail pages for new/changed races
+           └─ a full refresh runs every 15 days
+② Merge    python scripts/merge_all.py    dedupe / fill categories / recalc status
+                                          (auto-backup before every update)
+③ Render   node daily_update.js           refresh "today" and the page
+④ Publish  commit → GitHub Pages redeploys
+```
+
+To check it's healthy: **your repo → Actions → Daily Update** (a green check means all good).
+
+---
+
+## 🚀 Local preview
+
+**No dependencies** — just double-click `index.html`
+(data is loaded via `<script src>`, which works under `file://`).
+
+To modify data or run the crawlers, see the [debugging guide](#-debugging-guide).
+
+---
+
+## 🍴 Fork your own calendar
 
 ### 1. Fork the repository
-Click **Fork** at the top-right of this page to get `your-username/Trail-Running-calendar`.
+Click **Fork** at the top-right to get `your-username/Trail-Running-calendar`.
 
-### 2. Enable auto-updates (GitHub Actions)
+### 2. Enable auto-updates (Actions)
 - Go to `your repo → Actions`
-- If you see "Workflows aren't being run on this forked repository", click **I understand my workflows, go ahead and enable them**
-- After that, it crawls and commits daily at UTC 19:00 (Beijing 03:00)
+- If you see *"Workflows aren't being run on this forked repository"*, click **I understand my workflows, go ahead and enable them**
+- It then crawls and commits daily at UTC 19:00 (Beijing 03:00)
 
-### 3. Enable web hosting (GitHub Pages)
+### 3. Enable web hosting (Pages)
 - `Settings → Pages`
 - Set **Source** to `Deploy from a branch`
 - Set **Branch** to `main` + `/ (root)` → Save
-- In a few minutes, visit `https://your-username.github.io/Trail-Running-calendar/`
+- In a few minutes visit `https://your-username.github.io/Trail-Running-calendar/`
 
-> The repo ships with `.nojekyll` — without it, Pages' Jekyll would ignore `_race_data.js` (leading underscore) and the page would render empty.
+> The repo ships with `.nojekyll` — without it, Pages' Jekyll would ignore `_race_data.js` (leading underscore) and the page would render blank.
 
 ### 4. Allow Actions to push (if you hit a permission error)
-- `Settings → Actions → General → Workflow permissions`
-- Select **Read and write permissions** → Save
+`Settings → Actions → General → Workflow permissions` → select **Read and write permissions**.
 
-### 5. Want only one region / one type?
-- **One province only**: edit `crawlers/zuicool.py` near `crawl(year_filter=...)`, or add a filter in `scripts/merge_all.py`
+### 5. Want only one region / type?
+- **One province only**: add a filter in `scripts/merge_all.py`, or narrow the scope in `crawlers/zuicool.py`
 - **Change the year**: search for `2026` and replace with your target year
-- **Change the colors**: edit the CSS variables `--red / --blue / --yellow` at the top of `index.html`
+- **Change the colors**: edit the CSS variables at the top of `index.html`
 
 ---
 
-## Debugging guide
+## 🛠 Debugging guide
 
-### Data isn't updating?
-1. Open `your repo → Actions → Daily Update` and check whether the latest run succeeded
-2. Common causes of failure:
-   - Actions write permission not enabled → see Fork step 4
-   - Target site rate-limiting or site redesign → check the `[zuicool]` paging output in the logs
+<details>
+<summary><b>Data isn't updating?</b></summary>
+
+1. Check whether the latest run in `your repo → Actions → Daily Update` succeeded
+2. Common causes:
+   - Actions write permission not enabled → see [Fork step 4](#4-allow-actions-to-push-if-you-hit-a-permission-error)
+   - Target site rate-limiting or redesign → check the crawler output in the logs
 3. **Trigger a run manually**: `Actions → Daily Update → Run workflow`
 
-### Run the whole pipeline locally
+</details>
+
+<details>
+<summary><b>Run the whole pipeline locally</b></summary>
+
 ```bash
-# 1) Crawl (incremental: only new/changed races, ~1–2 min)
-python crawlers/zuicool.py
-#    Force a full detail refresh (800+ pages, 15–40 min):
+# 1) Crawl (incremental, ~1–2 min; full incl. Skyrunning ~7 min)
+python crawlers/run_all.py
+#    Or the primary crawler only, forcing a full detail refresh (800+ pages, 15–40 min)
 python crawlers/zuicool.py --full
 
 # 2) Merge crawl results → _race_data.js
@@ -124,47 +150,56 @@ node daily_update.js
 
 # 4) Open index.html in a browser to preview
 ```
-> On Windows, set `PYTHONIOENCODING=utf-8` before running Python, or the console's GBK encoding will raise errors.
 
-### A platform returns no data?
+> **Windows:** set `PYTHONIOENCODING=utf-8` before running Python, or the console's GBK encoding raises errors.
+
+</details>
+
+<details>
+<summary><b>A platform returns no data?</b></summary>
+
 - Check the `count` in `crawl/output/{platform}.json`
-- Check `crawl/REPORT_<date>.md` (the merge report)
-- To inspect one specific race:
-  ```bash
-  python -c "import sys; sys.path.insert(0,'crawlers'); import zuicool as z; \
-  print(z.parse_detail(z.fetch('https://zuicool.com/event/98816')))"
-  ```
+- Check the merge report `crawl/REPORT_<date>.md`
+- Inspect a single race:
 
-### Search / filters not responding?
-1. Press `F12` in the browser and check the Console for red errors
+```bash
+python -c "import sys; sys.path.insert(0,'crawlers'); import zuicool as z; \
+print(z.parse_detail(z.fetch('https://zuicool.com/event/98816')))"
+```
+
+</details>
+
+<details>
+<summary><b>Search / filters not responding?</b></summary>
+
+1. Press `F12` and check the Console for red errors
 2. Common cause: a race in `_race_data.js` is missing a field (e.g. empty `city`), which makes the script throw
 3. Validate the data file:
-   ```bash
-   node -e "require('./_race_data.js'); console.log('data OK')"
-   ```
-4. Validate the page script:
-   ```bash
-   node daily_update.js    # prints whether index.html JS syntax is OK
-   ```
 
-### Preview changes instantly
-Just double-click `index.html` and refresh — no build, no server needed.
+```bash
+node -e "require('./_race_data.js'); console.log('data OK')"
+```
+
+4. Validate the page script: `node daily_update.js` (prints whether index.html JS syntax is OK)
+
+</details>
 
 ---
 
-## Tech stack
+## 🧱 Tech stack
 
 - **Scraping**: Python 3 + requests + BeautifulSoup
-- **Storage**: a single CommonJS file, `_race_data.js`
-- **Frontend**: vanilla HTML / CSS / JavaScript (zero dependencies, zero build)
+- **Storage**: a single CommonJS file, `_race_data.js` (single source of truth)
+- **Frontend**: vanilla HTML / CSS / JavaScript — zero dependencies, zero build
 - **Automation**: GitHub Actions + GitHub Pages
 
-For the **detailed project structure and internal flow**, see [`project/project.md`](./project/project.md).
+> For the **detailed project structure and internal flow**, see [`project/project.md`](./project/project.md);
+> for the dated changelog, see [`version/version.md`](./version/version.md).
 
 ---
 
-## License & credits
+## 📄 License & credits
 
-Data copyright belongs to the respective race organizers and platforms; this project only aggregates and displays it. Issues and PRs are welcome.
+Data copyright belongs to the respective race organizers and platforms; this project only aggregates and displays it. Issues and PRs are [welcome](https://github.com/Nikiwang92/Trail-Running-calendar/issues).
 
 If this tool helped you, a ⭐ is appreciated.
