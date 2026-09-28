@@ -261,10 +261,19 @@
             display: none;
         }
 
+        /* 状态按钮上的动态数量 */
+        .filter-btn .cnt {
+            margin-left: 5px;
+            font-size: 0.86em;
+            opacity: 0.6;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .filter-btn.active .cnt { opacity: 0.85; }
+
         .filter-btn {
             padding: 5px 11px;
-            border-radius: 0;
-            border: 2px solid var(--border);
+            border-radius: 0;            border: 2px solid var(--border);
             background: var(--white);
             color: var(--fg);
             cursor: pointer;
@@ -944,9 +953,9 @@
     <div class="filter-panel" id="filterPanel">
     <div class="filter-nav" data-group="status">
         <button class="filter-btn active" data-filter="all">全部</button>
-        <button class="filter-btn" data-filter="upcoming">未开始</button>
-        <button class="filter-btn" data-filter="open">进行中</button>
-        <button class="filter-btn" data-filter="past">已结束</button>
+        <button class="filter-btn" data-filter="upcoming">未开始<span class="cnt" id="cntUpcoming"></span></button>
+        <button class="filter-btn" data-filter="open">进行中<span class="cnt" id="cntOpen"></span></button>
+        <button class="filter-btn" data-filter="past">已结束<span class="cnt" id="cntPast"></span></button>
     </div>
     <div class="filter-nav" data-group="tag">
         <button class="filter-btn active" data-filter="all">全部</button>
@@ -1287,8 +1296,20 @@ function updateStats() {
     document.getElementById('totalCount').textContent = races.length;
     const provincesSet = new Set(races.map(r => r.province));
     document.getElementById('provinceCount').textContent = provincesSet.size;
-    const upcoming = races.filter(r => getStatusFromRace(r) === 'upcoming').length;
-    document.getElementById('upcomingCount').textContent = upcoming;
+    // 状态计数：按「赛程区间」实时算（含今天＝进行中）
+    const byStatus = { upcoming: 0, open: 0, past: 0 };
+    races.forEach(r => {
+        const s = getStatusFromRace(r);
+        if (byStatus[s] !== undefined) byStatus[s]++;
+    });
+    document.getElementById('upcomingCount').textContent = byStatus.upcoming;
+    const cnt = (id, n) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = n;
+    };
+    cnt('cntUpcoming', byStatus.upcoming);
+    cnt('cntOpen', byStatus.open);
+    cnt('cntPast', byStatus.past);
 }
 
 function groupActive(group) {

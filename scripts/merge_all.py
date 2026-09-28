@@ -782,6 +782,11 @@ def sync_city_province(existing, crawled, src):
         cr = by_key.get(link_key(e.get('link', '')))
         if not cr:
             continue
+        # link 串库保护：同 link 但两边名字毫无共同片段 → 这条 link 其实指向别的赛事，
+        # 别拿它的省份/城市/日期去覆盖（zui 的 event id 偶有复用，如 35355）
+        hn, hc = _hardnorm(e.get('name')), _hardnorm(cr.get('name'))
+        if hn and hc and hn != hc and not (hn in hc or hc in hn or _shares_token(hn, hc)):
+            continue
         prov_diff = e.get('province') != cr.get('province')
         city_diff = bool(cr.get('city')) and _city_conflicts(e.get('city'), cr.get('city'))
         # 同一个 link（最酷 event id）就代表同一场赛事 → 改期就该跟着改。
@@ -906,15 +911,52 @@ def sync_reg_deadline(existing, crawled, src):
     return new_src, changed
 
 
+def _merge_dists(old, new):
+    """按组别（距离）逐字段合并：
+      · 新有、旧无 → 加入（页面新增了组别）
+      · 旧有、新无 → 保留（页面删了也别丢我们已有的）
+      · 两边都有   → 用新的，但新缺 climb/time 时沿用旧的
+    """
+    old_by = {d.get('d'): d for d in old if d.get('d')}
+    out, seen = [], set()
+    for d in new:
+        k = d.get('d')
+        if not k:
+            continue
+        seen.add(k)
+        o = old_by.get(k, {})
+        item = {'d': k}
+        for f in ('climb', 'time'):
+            v = d.get(f) or o.get(f)
+            if v:
+                item[f] = v
+        out.append(item)
+    for d in old:
+        if d.get('d') and d.get('d') not in seen:
+            out.append(dict(d))
+    # 与 sort_all_distances 保持同一顺序，否则每轮都会因"顺序不同"再改一次（不幂等）
+    out.sort(key=lambda d: -int(''.join(c for c in (d.get('d') or '') if c.isdigit()) or 0))
+    return out
+
+
+def _dist_ratio_bad(dists, limit=400):
+    """爬升率离谱的组别（m/km）。垂直爬升赛(VK) 本来就 300-500，所以只提示不拦。"""
+    out = []
+    for d in dists:
+        km = int(''.join(c for c in (d.get('d') or '') if c.isdigit()) or 0)
+        cl = int(''.join(c for c in (d.get('climb') or '') if c.isdigit()) or 0)
+        if km and cl and cl / km > limit:
+            out.append(f"{d['d']}/{d['climb']}({round(cl / km)}m/km)")
+    return out
+
+
 def merge_existing_distances(existing, crawled, src):
-    """对每条 existing race，如果 crawled 找到匹配（同 link 或 同 name_norm+date），
-    把 crawled 的 distances 字段（特别是 climb/time）补全到 existing。
-    保留 existing 的人工字段（wechat、tags），distances 用 crawled 的（含 climb/time）。"""
+    """用爬虫的官方组别更新已有条目（按组别逐字段合并，见 _merge_dists）。
+    只有 zuicool（结构化"场次组别"块）允许覆盖；其他平台仅在现有为空时补。
+    闸门：详情页标题与赛事名对不上 → 说明 link 串了别的赛事，整条跳过并记录下来。"""
     import re as _re
     from _lib.parse import normalize_name
-    # 建 crawled 索引（存 (平台, race)，平台决定 distances 是否可信）
-    by_link = {}
-    by_key = {}
+    by_link, by_key = {}, {}
     for plat, races in crawled.items():
         for r in races:
             if r.get('link'):
@@ -925,64 +967,60 @@ def merge_existing_distances(existing, crawled, src):
             if k[0] and k[1]:
                 by_key.setdefault(k, []).append((plat, r))
     new_src = src
-    updated = 0
+    updated, mismatched, flagged = 0, [], []
     for e in existing:
-        # 找 matched（返回 (平台, race)）
         matched = None
         if e.get('link'):
             m = _re.match(r'https?://([^/?#]+)', e['link'])
             if m:
-                cands = by_link.get(m.group(1), [])
-                for cplat, c in cands:
+                for cplat, c in by_link.get(m.group(1), []):
                     if normalize_name(c.get('name', '')) == normalize_name(e['name']):
                         matched = (cplat, c)
                         break
         if not matched:
-            k = (normalize_name(e['name']), e.get('date', ''))
-            cands = by_key.get(k, [])
+            cands = by_key.get((normalize_name(e['name']), e.get('date', '')), [])
             if cands:
                 matched = cands[0]
         if not matched:
             continue
         matched_plat, matched_race = matched
-        crawled_dists = matched_race.get('distances', [])
+        if matched_race.get('title_ok') is False:
+            mismatched.append(f"{e['name'][:28]}({e.get('link', '')[-8:]})")
+            continue
+        crawled_dists = matched_race.get('distances') or []
         if not crawled_dists:
             continue
-        # 只有结构化解析的平台（zuicool 的"场次组别"块）才允许覆盖现有组别；
-        # 其他平台（runninginchina 等）解析噪声大，仅在现有为空时补。
-        if matched_plat != 'zuicool':
-            if e.get('distances'):
-                continue
-        # crawled 现为官方"场次组别"块解析，作为 distances 权威来源：
-        # 只要解析出组别就整体替换（旧的全文扫 km 数据常有错组别/错爬升）。
-        existing_dists = e.get('distances', [])
-        if existing_dists and len(crawled_dists) < len(existing_dists):
-            # 现有组别更多：仅当 crawled 组别基本都带爬升（更可信）时才替换，
-            # 否则保留现有的多组别（避免爬到不完整时反而丢组别）。
-            crawled_rich = sum(1 for d in crawled_dists if d.get('climb')) >= max(1, len(crawled_dists) // 2 + 1)
-            if not crawled_rich:
-                continue
-        # 替换整行：保留 e 的缩进/字段，但 distances 用 crawled 的
+        existing_dists = e.get('distances') or []
+        if matched_plat != 'zuicool' and existing_dists:
+            continue
+        merged = _merge_dists(existing_dists, crawled_dists)
+        if merged == existing_dists:
+            continue
         raw = e['_raw']
         dm = _re.search(r'distances:\[([^\]]*)\]', e['_stripped'])
-        if not dm:
+        if not dm or dm.group(0) not in raw:
             continue
-        crawled_dists_str = ','.join(
-            '{d:"' + d.get('d', '') + ('",climb:"' + d['climb'] + '"' if d.get('climb') else '"') + (',time:"' + d['time'] + '"' if d.get('time') else '') + '}'
-            for d in crawled_dists if d.get('d')
+        dist_str = ','.join(
+            '{d:"' + str(d.get('d', '')) + '"'
+            + (',climb:"' + d['climb'] + '"' if d.get('climb') else '')
+            + (',time:"' + d['time'] + '"' if d.get('time') else '') + '}'
+            for d in merged
         )
-        # 替换 raw 中的 distances 部分
-        old_pattern = _re.escape(dm.group(0))
-        new_pattern = f'distances:[{crawled_dists_str}]'
-        # 找 raw 中匹配的位置（避免 dm 在 stripped 中的 prefix 不在 raw 中）
-        if dm.group(0) in raw:
-            new_raw = raw.replace(dm.group(0), new_pattern, 1)
-        else:
-            # raw 中格式可能不同
-            continue
+        new_raw = raw.replace(dm.group(0), 'distances:[' + dist_str + ']', 1)
         if new_raw != raw:
             new_src = new_src.replace(raw, new_raw, 1)
             updated += 1
+            bad = _dist_ratio_bad(merged)
+            if bad:
+                flagged.append(f"{e['name'][:26]}: {' '.join(bad)}")
+    if mismatched:
+        print(f'[merge] ⚠ 详情页标题与赛事名不符（link 可能串了别的赛事），已跳过 {len(mismatched)} 条:')
+        for x in mismatched[:8]:
+            print(f'         {x}')
+    if flagged:
+        print(f'[merge] ⚠ 爬升率偏高（>400m/km，VK 赛属正常，人工扫一眼）{len(flagged)} 条:')
+        for x in flagged[:8]:
+            print(f'         {x}')
     return new_src, updated
 
 

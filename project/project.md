@@ -161,7 +161,7 @@ state 里见过、但列表指纹变了            → 抓详情
 到全量周期(FULL_REFRESH_DAYS=15)且尚未开赛 → 抓详情（兜底"详情页独有变化"）
 其余 / 已开赛结束                       → 跳过
 ```
-- 已开赛/结束的赛事（`date < today`）**永不重抓**（现 851 场里 past 629 场，占 7 成，直接砍掉）
+- 已开赛/结束的赛事**开赛 3 天内仍会重抓**（`STALE_DAYS=3`，赛前/赛中页面还在改组别与关门），超过才永久跳过（现 851 场里 past 629 场，占 7 成，直接砍掉）
 - 跳过的条目**沿用上一次 `zuicool.json` 的详情字段**（`_load_prev_output()`），保证输出是**完整快照**——否则 `official`/`wechat`/`distances` 会丢，导致合并层去重与 missing 判定失效
 - 状态存 `crawl/state.json`：`{last_full, races:{id:{fp, fetched}}}`
 - `--full` 参数可强制全量
@@ -219,7 +219,7 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 1.26 | 同步名称 | `sync_name` | zuicool 列表名更长且（规范化后）包含现有名 → 更新（如「深圳100跑山赛」→「…暨TORX®中国站」）|
 | 1.27 | 补 TORX 标签 | `sync_torx_tags` | 名称含 TORX 的条目补 `torx` 标签（tag 只在新增时写入、zuicool 侧粘性，历史条目不会自动补）|
 | 1.3 | 同步报名截止 | `sync_reg_deadline` | 把列表卡片上的"报名截止"写入/更新到已有条目 |
-| 1.5 | 补全组别 | `merge_existing_distances` | 用官方组别覆盖脏数据；**只有 zuicool 平台允许覆盖**，其余平台仅在空时补 |
+| 1.5 | 补全组别 | `merge_existing_distances` | 用官方组别更新已有条目，**按组别（距离）逐字段合并**：新有旧无→加、旧有新无→留、都有→用新的但缺的字段沿用旧的。只有 zuicool 允许覆盖。**闸门**：详情页标题与赛事名对不上（link 串了别的赛事）→ 整条跳过并打印出来 |
 | 2 | 检测取消 | `detect_missing` + `mark_cancelled` | 连续 **14 天**所有平台没抓到 → `status:"cancelled"`（不删条目），进度存 `crawl/MISSING_LOG.json`。**按"天"累加**（同日多次运行算 1 天）；**已过去的赛事**和**非 zuicool 来源**的赛事不参与统计 |
 | 3 | 新增赛事 | `detect_new` + `insert_new_races` | 追加到 `];` 之前；`serialize_new()` 序列化 |
 | 3.5 | 最终去重 | `dedupe_final` | 见下 |
@@ -408,6 +408,7 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 
 - **JS 数组空洞会静默传染**：`_race_data.js` 是"一行一条"的数组字面量，若出现连续两个逗号（`,,`）就产生空洞（`length` 比对象数多）。`Array.map/join` 会把空洞当空串保留，所以空洞不会自愈、且会一路传下去（`daily_update` 也修不掉）。`insert_new_races` 已加"head 已带尾逗号则不再补"的保护；手工删行时注意别留下孤立 `,` 行。校验：`node -e "const a=require('./_race_data.js');let h=0;for(let i=0;i<a.length;i++)if(!(i in a))h++;console.log(a.length,a.filter(x=>x&&x.name).length,h)"`（三个数应满足 length == 对象数，空洞 0）。
 - **同步类步骤前必须重新解析 `existing`**：`auto_recalc_status` / `merge_existing_distances` 会重写行内容，之后仍拿旧的 `_raw` 去 `src.replace` 会**静默失败**（日志却照记"已修正"）。`main()` 里每次同步前都 `existing = _reparse()`。
+- **zui 的 event id 偶有复用**：同一条 link 的页面可能已经变成**另一场赛事**（如 35355 从「XTERRA太湖」变成「北京户外轨迹训练营」）。`parse_detail` 会带上 `page_title`，爬虫比对后给 `title_ok`；`merge_existing_distances` 拿它做闸门、`sync_city_province` 也要求两边名字有共同片段，避免把别的赛事的地点/日期覆盖进来。
 - **`detect_missing` 按名匹配，改名会误判**：运营方改名后（「漓江越野跑」→「第九届漓江越野跑」）名字对不上 → 连续 14 天"抓不到" → 误标 `cancelled`，而且**没有复活路径**。现在 `_still_listed()` 兜底按「±2 天 + 同省 + 名称高度相似/有共同词」判定，且已取消的重新抓到会**复活**。
 - **`MISSING_LOG` 必须按"天"累加**：曾按"每次运行"累加，一天内反复跑 merge 把 days 刷到 14 → 36 场被误标 `cancelled`（靠 `data_backup/` 一键回滚救回）。改 `detect_missing` 时务必保留 `last_missing != today` 的判断。
 - **missing 统计只覆盖"未过去 + zuicool 来源"的赛事**：① 已结束的赛事会从 zuicool 列表自然下架，统计它们会导致 14 天后被误标 cancelled；② 非 zuicool 来源（官网/tsaigu/ninghai100 等）永远不会出现在 zuicool 列表里，统计它们会被永久误判为 missing。

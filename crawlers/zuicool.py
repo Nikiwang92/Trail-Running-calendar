@@ -3,7 +3,7 @@
 # 列表页：https://reg.zuicool.com/?race_type_id=10 翻页
 # 详情页：https://reg.zuicool.com/{id}
 import sys, re, json, os, time, hashlib
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +29,7 @@ REGIONS = [
 ]
 
 FULL_REFRESH_DAYS = 15   # 每 N 天做一次全量详情抓取（兜底"详情页独有变化"）
+STALE_DAYS = 3           # 开赛后仍继续刷详情 N 天：赛前/赛中的页面还在改（组别、关门）
 MIN_YEAR = '2026'        # 抓取 >= 该年份的赛事（含 2027/2028…）
 MIN_DATE = MIN_YEAR + '-01-01'
 MAX_PAGES = 30
@@ -425,8 +426,48 @@ def parse_detail(html):
         'tags': tags_from_page(html, name),
         'wechat': wechat,
         'official': official,
+        'page_title': _page_title(html),
         'raw_text': text[:500],
     }
+
+
+def _page_title(html):
+    """详情页标题（用于校验 link 是否指向了别的赛事）。最酷的标题就是赛事名，
+    偶尔带 " - 最酷" 之类后缀，统一截掉。"""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, 'html.parser')
+    t = ''
+    for attrs in ({'property': 'og:title'}, {'name': 'og:title'}):
+        meta = soup.find('meta', attrs=attrs)
+        if meta and meta.get('content'):
+            t = meta['content']
+            break
+    if not t and soup.title and soup.title.string:
+        t = soup.title.string
+    t = re.sub(r'\s+', ' ', (t or '')).strip()
+    for sep in (' - ', ' | ', ' – ', '_'):
+        if sep in t:
+            t = t.split(sep)[0].strip()
+    return t
+
+
+def _title_matches(page_title, race_name):
+    """页面标题与赛事名是否指同一场（防 link 串库：35355 的页面标题其实是另一个赛事）。
+    规范化后互相包含或相似度 >=0.7 才算通过；页面没标题时放行（不误伤）。"""
+    if not page_title:
+        return True
+    from difflib import SequenceMatcher
+    a, b = _hardnorm(page_title), _hardnorm(race_name)
+    if not a or not b:
+        return True
+    if a in b or b in a:
+        return True
+    return SequenceMatcher(None, a, b).ratio() >= 0.7
+
+
+def _hardnorm(s):
+    """只留中英文数字，去掉标点/空格，用于标题比对。"""
+    return re.sub(r'[^0-9a-zA-Z一-鿿]', '', s or '').lower()
 
 
 def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
@@ -473,13 +514,16 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
         fp = _fingerprint(it)
         it['_fp'] = fp
         prev = state['races'].get(rid)
-        started = (it.get('date') or '') < today   # 已开赛/结束的不抓详情
+        # 开赛后头 3 天仍继续刷新：赛事页在赛前/赛中还会改（组别、关门时间），
+        # 一开赛就停抓会导致库里停在旧值（历史"组别/爬升不对"多由此而来）
+        _d = it.get('date') or ''
+        too_old = bool(_d) and _d < (date.fromisoformat(today) - timedelta(days=STALE_DAYS)).isoformat()
         if prev is None:
-            if not started:
+            if not too_old:
                 need.append((rid, it, 'new'))      # 从没见过的新赛事
         elif prev.get('fp') != fp:
             need.append((rid, it, 'changed'))      # 列表有变化
-        elif full_due and not started:
+        elif full_due and not too_old:
             need.append((rid, it, 'full'))         # 全量兜底（跳过已开赛）
     from collections import Counter
     reasons = Counter(x[2] for x in need)
@@ -536,6 +580,7 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
             'wechat': info.get('wechat'),
             'official': info.get('official'),
             'reg_deadline': it.get('reg_deadline'),
+            'title_ok': _title_matches(info.get('page_title'), name),
             'raw': {'fetched': rid in fetched},
         })
 
