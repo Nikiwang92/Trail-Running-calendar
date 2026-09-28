@@ -208,6 +208,66 @@ def dedupe_final(src):
     return new_src, dropped
 
 
+def drop_stale_zuicool_duplicates(crawled, src):
+    """删除"已从最酷列表下架、且与在售赛事同名同省、日期相差 ≤2 天"的陈旧条目。
+    运营方改期时最酷会新建一个 listing、旧 id 直接消失——按 link 去重（id 不同）
+    和按 (名, 日期) 去重（日期差 1 天）都拦不住，于是同一赛事在库里留两条。
+    只处理 zuicool 来源：其他平台没有"列表"概念，无从判断是否下架。"""
+    from datetime import date as _date
+    live = {link_key(r.get('link', '')) for r in crawled.get('zuicool', [])}
+    live.discard('')
+    entries = parse_races_text(src)
+    groups = {}
+    for e in entries:
+        groups.setdefault((normalize_name(e['name']), e.get('province') or ''), []).append(e)
+
+    def _zid(e):
+        k = link_key(e.get('link', ''))
+        return k if k.startswith('zuicool:') else None
+
+    def _days(a, b):
+        try:
+            return abs((_date.fromisoformat(a) - _date.fromisoformat(b)).days)
+        except Exception:
+            return 999
+
+    stale = set()
+    for es in groups.values():
+        if len(es) < 2:
+            continue
+        for s in es:
+            ks = _zid(s)
+            if ks and ks in live:           # 这条仍在售 → 不动
+                continue
+            for o in es:
+                ko = _zid(o)
+                if o is s or not ko or ko not in live:
+                    continue
+                hs, ho = _hardnorm(s['name']), _hardnorm(o['name'])
+                # 只处理"改期/改名导致日期只差一两天"的：运营方改期时最酷新建 listing，
+                # 旧 id 消失、日期差 1 天，按 link 和按 (名,日期) 去重都拦不住。
+                # ⚠️ 不要再放宽到"同名就删"——日期差得远的多半是**我们这条日期旧了**，
+                # 该做的是同步日期（见 sync_date），不是把条目删掉。
+                if _days(s.get('date', ''), o.get('date', '')) <= 2 and hs and ho and (
+                        hs == ho or hs in ho or ho in hs):
+                    stale.add(id(s))
+                    break
+    new_src = src
+    dropped = []
+    for e in entries:
+        if id(e) not in stale:
+            continue
+        raw = e['_raw']
+        if (raw + '\n') in new_src:
+            new_src = new_src.replace(raw + '\n', '', 1)
+        elif raw in new_src:
+            new_src = new_src.replace(raw, '', 1)
+        else:
+            continue
+        dropped.append(f"{e['name'][:24]}({e.get('date')})")
+    return new_src, dropped
+
+
 JUNK_NAMES = {
     '领物须知', '竞赛规程', '常见问题', '报名须知', '赛事规程', '参赛须知',
     '免责声明', '联系我们', '关于我们', '隐私政策', '用户协议', '赛事信息',
@@ -413,12 +473,71 @@ def auto_recalc_status(existing, src):
     return new_src, changed
 
 
+def _crawler_index(crawled):
+    """爬虫产物索引：{normalize_name} + {date: [(norm, province)]}。"""
+    found, by_date = set(), {}
+    for races in crawled.values():
+        for r in races:
+            n = normalize_name(r.get('name', ''))
+            if not n:
+                continue
+            found.add(n)
+            if r.get('date'):
+                by_date.setdefault(r['date'], []).append((n, r.get('province') or ''))
+    return found, by_date
+
+
+def _hardnorm(s):
+    """去掉一切非中英文数字字符（连字符、®、括号…），用于改名兜底匹配。"""
+    return re.sub(r'[^0-9a-z一-鿿]', '', s or '')
+
+
+def _still_listed(e, found, by_date):
+    """这条赛事在爬虫产物里还找得到吗？
+    先按规范化名精确匹配；再兜底按「±2 天内 + 同省 + 名称高度相似」。
+    运营方改名后名字对不上（「漓江越野跑」→「第九届漓江越野跑」、
+    「京西·小红点 西山越野荟」→「…-西山越野荟」、「梅里100」中间插了个年份），
+    不兜底就会被 missing 统计误判成"取消"。"""
+    from datetime import date as _date, timedelta as _td
+    from difflib import SequenceMatcher
+    n = normalize_name(e.get('name', ''))
+    if n and n in found:
+        return True
+    hn = _hardnorm(n)
+    if not hn:
+        return False
+    try:
+        d0 = _date.fromisoformat(e.get('date', ''))
+    except Exception:
+        return False
+    for delta in (0, 1, -1, 2, -2):
+        for nc, prov in by_date.get((d0 + _td(days=delta)).isoformat(), []):
+            if e.get('province') and prov and e['province'] != prov:
+                continue
+            hc = _hardnorm(nc)
+            if not hc:
+                continue
+            if hc == hn or hc in hn or hn in hc:
+                return True
+            if SequenceMatcher(None, hn, hc).ratio() >= 0.85:
+                return True
+            # 同日同省 + 有 ≥3 字的共同词 → 视为同一场（如「京西·小红点 西山越野荟」
+            # 改名成「2026西山越野荟·北京模式口站」，相似度只有 0.4 但明显是同一场）
+            if delta == 0 and _shares_token(hn, hc):
+                return True
+    return False
+
+
+def _shares_token(a, b, k=3):
+    """a、b 是否共有长度 ≥k 的连续子串（用于识别改名但保留地名的同一赛事）。"""
+    if len(a) < k or len(b) < k:
+        return False
+    return any(a[i:i + k] in b for i in range(len(a) - k + 1))
+
+
 def detect_missing(existing, crawled):
     today_str = datetime.now().strftime('%Y-%m-%d')
-    found = set()
-    for plat, races in crawled.items():
-        for r in races:
-            found.add(normalize_name(r.get('name', '')))
+    found, by_date = _crawler_index(crawled)
     missing_log = load_missing_log()
     for e in existing:
         if e.get('status') == 'cancelled':
@@ -433,7 +552,7 @@ def detect_missing(existing, crawled):
             missing_log.pop(normalize_name(e['name']), None)
             continue
         n = normalize_name(e['name'])
-        if n in found:
+        if _still_listed(e, found, by_date):
             missing_log.pop(n, None)
             continue
         if n not in missing_log:
@@ -445,11 +564,24 @@ def detect_missing(existing, crawled):
     return missing_log
 
 
-def mark_cancelled(existing, missing_log, src):
-    cancelled = []
+def mark_cancelled(existing, missing_log, src, found=None, by_date=None):
+    """连续 14 天抓不到 → status="cancelled"；反过来，已取消的又抓到了 → 复活。
+    （没有复活这条路的话，一次误判就永久取消了，改回来也没用。）"""
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    cancelled, revived = [], []
     new_src = src
     for e in existing:
         if e.get('status') == 'cancelled':
+            if found is None or not _still_listed(e, found, by_date):
+                continue
+            end = e.get('endDate') or e.get('date') or ''
+            new_status = 'past' if end < today_str else 'upcoming'
+            stripped = e['_stripped']
+            new_stripped = re.sub(r'status:"cancelled"', 'status:"%s"' % new_status, stripped)
+            if new_stripped != stripped:
+                new_src = new_src.replace(e['_raw'], e['_raw'].replace(stripped, new_stripped), 1)
+                revived.append(f"{e['name'][:20]}({new_status})")
+                missing_log.pop(normalize_name(e['name']), None)
             continue
         n = normalize_name(e['name'])
         log = missing_log.get(n, {})
@@ -460,7 +592,7 @@ def mark_cancelled(existing, missing_log, src):
                 new_src = new_src.replace(e['_raw'], e['_raw'].replace(stripped, new_stripped), 1)
                 cancelled.append(e['name'])
                 log['cancelled'] = True
-    return new_src, cancelled
+    return new_src, cancelled, revived
 
 
 def detect_new(existing, crawled, claimed=None):
@@ -614,10 +746,28 @@ def sync_region_province(existing, crawled, src):
     return new_src, changed
 
 
+def _city_key(c):
+    """城市串的粗略指纹：去标点 + 去行政区划/场所后缀，用于判断"是不是同一处"。"""
+    c = re.sub(r'[\s·・,，。、\-—()（）\[\]／/]', '', c or '')
+    return re.sub(r'(省|市|自治州|自治区|地区|县|区|镇|乡|村|社区|街道|广场|公园|景区|游客中心|服务中心|门前|门口)', '', c)
+
+
+def _city_conflicts(a, b):
+    """两条城市串是否"明显不是同一处"（规范化后互不包含）。
+    仅凭不同就覆盖会把 300 条只是写法差异的（"毕节市七星关区·同心公园" ↔
+    "贵州·毕节·七星关·同心公园广场"）也一起改掉，所以要求互不包含才算冲突。"""
+    na, nb = _city_key(a), _city_key(b)
+    if len(na) < 2 or len(nb) < 2:
+        return False
+    return na not in nb and nb not in na
+
+
 def sync_city_province(existing, crawled, src):
     """已有条目的 province/city 若与 zuicool 列表卡片不一致 → 以爬虫为准。
-    历史遗留：province/city 只在新增时写入，之后 merge 从不更新，错值会永久留存
-    （曾把「九寨沟」标成浙江、「青海同德」标成浙江建德——多场赛事套用了同一个错误地点）。"""
+    历史遗留：province/city 只在新增时写入、之后 merge 从不更新，错值会永久留存
+    （曾把「九寨沟」标成浙江、「青海同德」标成浙江建德）。
+    ⚠️ 城市也要比：只在省份不同时才改是不够的——同省不同市同样是错的
+    （「贡嘎100冰川极限挑战赛」就残留成了"成都武侯区天府一街"）。"""
     by_key = {}
     for plat, races in crawled.items():
         if plat != 'zuicool':
@@ -630,17 +780,43 @@ def sync_city_province(existing, crawled, src):
     changed = []
     for e in existing:
         cr = by_key.get(link_key(e.get('link', '')))
-        if not cr or e.get('province') == cr.get('province'):
+        if not cr:
+            continue
+        prov_diff = e.get('province') != cr.get('province')
+        city_diff = bool(cr.get('city')) and _city_conflicts(e.get('city'), cr.get('city'))
+        # 同一个 link（最酷 event id）就代表同一场赛事 → 改期就该跟着改。
+        # 日期不同步的话，改期后库里会一直停在旧日期（曾是「澜跑无锡」07-17 /「朱雀」10-31 的成因）。
+        date_diff = bool(cr.get('date')) and e.get('date') != cr.get('date')
+        end_diff = bool(cr.get('end_date')) and e.get('endDate') != cr.get('end_date')
+        if not prov_diff and not city_diff and not date_diff and not end_diff:
             continue
         raw = e['_raw']
-        new_raw = re.sub(r'province:"((?:[^"\\]|\\.)*)"',
-                         'province:' + json.dumps(cr['province'], ensure_ascii=False), raw, count=1)
-        if cr.get('city'):
+        new_raw = raw
+        if date_diff:
+            new_raw = re.sub(r'(?<![a-zA-Z])date:"((?:[^"\\]|\\.)*)"',
+                             'date:' + json.dumps(cr['date'], ensure_ascii=False), new_raw, count=1)
+        if end_diff:
+            if 'endDate:"' in new_raw:
+                new_raw = re.sub(r'endDate:"((?:[^"\\]|\\.)*)"',
+                                 'endDate:' + json.dumps(cr['end_date'], ensure_ascii=False), new_raw, count=1)
+            else:
+                new_raw = re.sub(r'(?<![a-zA-Z])date:"((?:[^"\\]|\\.)*)"',
+                                 lambda m: m.group(0) + ', endDate:' + json.dumps(cr['end_date'], ensure_ascii=False),
+                                 new_raw, count=1)
+        if prov_diff:
+            new_raw = re.sub(r'province:"((?:[^"\\]|\\.)*)"',
+                             'province:' + json.dumps(cr['province'], ensure_ascii=False), new_raw, count=1)
+        if cr.get('city') and (prov_diff or city_diff):
             new_raw = re.sub(r'city:"((?:[^"\\]|\\.)*)"',
                              'city:' + json.dumps(clean_city(cr['city']), ensure_ascii=False), new_raw, count=1)
         if new_raw != raw:
             new_src = new_src.replace(raw, new_raw, 1)
-            changed.append(f"{e['name'][:20]}: {e.get('province')}→{cr['province']}")
+            what = ('改省份' if prov_diff else [x for x, ok in
+                    (('改城市', city_diff), ('改日期', date_diff), ('改结束日', end_diff)) if ok][:1] or ['综合'])
+            changed.append(f"{e['name'][:20]}: {'/'.join(what)}")
+        elif date_diff or end_diff or city_diff or prov_diff:
+            # 行内容与快照不一致（本轮被别的步骤改过）→ 记一笔便于发现
+            pass
     return new_src, changed
 
 
@@ -855,40 +1031,56 @@ def main():
     new_src, status_changed = auto_recalc_status(existing, src)
     print(f'[merge] 重算 status: {status_changed} 场')
 
+    # 同步类步骤会重写行内容，必须重新解析：否则某些条目在本轮被改过（如 status），
+    # 后续步骤拿旧的 _raw 去 replace 会静默失败（日志却仍记成"已修正"）。
+    def _reparse():
+        return parse_races_text(new_src)
+
     # 1.2 修正已有条目的港澳台省份（详情页地点常误写为大陆）
+    existing = _reparse()
     new_src, region_fixed = sync_region_province(existing, crawled, new_src)
     if region_fixed:
         print(f'[merge] 修正港澳台归属 {region_fixed} 场')
 
+    existing = _reparse()
     # 1.25 同步省份/城市（以 zuicool 列表卡片为准，修正历史错配）
     new_src, loc_fixed = sync_city_province(existing, crawled, new_src)
     if loc_fixed:
         print(f'[merge] 修正省份/城市 {len(loc_fixed)} 场: {loc_fixed[:5]}')
 
+    existing = _reparse()
     # 1.26 同步名称（zuicool 列表名更长且包含现有名 → 以爬虫为准）
     new_src, name_fixed = sync_name(existing, crawled, new_src)
     if name_fixed:
         print(f'[merge] 修正名称 {len(name_fixed)} 场: {name_fixed[:3]}')
 
+    existing = _reparse()
     # 1.27 名称含 TORX 的条目补 'torx' 标签
     new_src, torx_fixed = sync_torx_tags(existing, new_src)
     if torx_fixed:
         print(f'[merge] 补 TORX 标签 {len(torx_fixed)} 场: {torx_fixed[:3]}')
 
+    existing = _reparse()
     # 1.3 同步"报名截止"（来自列表卡片）
     new_src, dl_fixed = sync_reg_deadline(existing, crawled, new_src)
     if dl_fixed:
         print(f'[merge] 同步报名截止 {dl_fixed} 场')
 
+    existing = _reparse()
     # 1.5 补全已有赛事的 distances（climb/time）— 用 crawled 匹配更新
     new_src, fields_updated = merge_existing_distances(existing, crawled, new_src)
     print(f'[merge] 补全 distances: {fields_updated} 场')
 
+    existing = _reparse()
     # 2. 检测 missing + 标 cancelled
     missing_log = detect_missing(existing, crawled)
-    new_src, cancelled = mark_cancelled(existing, missing_log, new_src)
+    _found, _by_date = _crawler_index(crawled)
+    new_src, cancelled, revived = mark_cancelled(existing, missing_log, new_src, _found, _by_date)
     print(f'[merge] 标 cancelled: {len(cancelled)} 场')
+    if revived:
+        print(f'[merge] 复活（又能抓到）{len(revived)} 场: {revived[:3]}')
 
+    existing = _reparse()
     # 3. 检测 + 插入新赛事
     new_by_plat = detect_new(existing, crawled, claimed)
     if new_by_plat:
@@ -899,6 +1091,11 @@ def main():
     new_src, deduped = dedupe_final(new_src)
     if deduped:
         print(f'[merge] 最终去重 {len(deduped)} 场')
+
+    # 3.55 删除已下架的陈旧重复（最酷改期后旧 listing 消失，留下与在售赛事同名的双份）
+    new_src, stale_dropped = drop_stale_zuicool_duplicates(crawled, new_src)
+    if stale_dropped:
+        print(f'[merge] 删除已下架重复 {len(stale_dropped)} 场: {stale_dropped[:3]}')
 
     # 3.6 组别距离降序排序
     new_src, reordered = sort_all_distances(new_src)

@@ -215,7 +215,7 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 0 | 跨平台去重 | `drop_claimed_duplicates` | `official` 域名"认领"（来自 zuicool 输出 **∪ 现有 `_race_data`**）后，独立的 utmb 英文条目删除 |
 | 1 | 重算 status | `auto_recalc_status` | 只改 status 字段 |
 | 1.2 | 修正港澳台归属 | `sync_region_province` | 已有条目若被识别为港澳台（爬虫 province 为港澳台、现有不是）→ 改 province/city |
-| 1.25 | 同步省份/城市 | `sync_city_province` | 已有条目的 province 与 zuicool 列表卡片不符 → 以爬虫为准（修正"只在新增时写入、之后永不更新"导致的历史错配）|
+| 1.25 | 同步省份/城市/日期 | `sync_city_province` | 已有条目与爬虫（同 link）不符 → 以爬虫为准：province、city、**date/endDate**。修正"只在新增时写入、之后永不更新"——错省份、错城市、**改期后日期停在旧的**都由此而来 |
 | 1.26 | 同步名称 | `sync_name` | zuicool 列表名更长且（规范化后）包含现有名 → 更新（如「深圳100跑山赛」→「…暨TORX®中国站」）|
 | 1.27 | 补 TORX 标签 | `sync_torx_tags` | 名称含 TORX 的条目补 `torx` 标签（tag 只在新增时写入、zuicool 侧粘性，历史条目不会自动补）|
 | 1.3 | 同步报名截止 | `sync_reg_deadline` | 把列表卡片上的"报名截止"写入/更新到已有条目 |
@@ -223,6 +223,7 @@ DGW100：实际距离100km，累计爬升3959米，总关门时长25小时   ←
 | 2 | 检测取消 | `detect_missing` + `mark_cancelled` | 连续 **14 天**所有平台没抓到 → `status:"cancelled"`（不删条目），进度存 `crawl/MISSING_LOG.json`。**按"天"累加**（同日多次运行算 1 天）；**已过去的赛事**和**非 zuicool 来源**的赛事不参与统计 |
 | 3 | 新增赛事 | `detect_new` + `insert_new_races` | 追加到 `];` 之前；`serialize_new()` 序列化 |
 | 3.5 | 最终去重 | `dedupe_final` | 见下 |
+| 3.55 | 删已下架重复 | `drop_stale_zuicool_duplicates` | 最酷改期时新建 listing、旧 id 消失 → 库里同赛事两条（日期差 1 天，按 link 和按 (名,日期) 都拦不住）。删掉"已不在列表 + 与在售赛事同名同省 + 日期差 ≤2 天"的那条 |
 | 3.6 | 组别降序 | `sort_all_distances` | 100K→50K→30K… |
 | 3.7 | 清洗 city | `sanitize_cities` | 去 `\n关注` / `地点` 前缀 |
 | 4 | 写+校验 | `node -e require()` | 语法错就回滚 |
@@ -406,6 +407,8 @@ cp backup/race_data/_race_data_20260911_100226.js _race_data.js   # 本地细粒
 - **模糊去重只在"跨来源"时生效**：`dedupe_final` 的同日近似名合并、`detect_new` 的近似名跳过，**都要求两边 link host 不同**。同源（同平台）同日同地点的相似名，多是同场赛事的**不同组别/不同赛事**（如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail 同日同地），合并会误删。加平台前务必保留这个 host 判断。
 
 - **JS 数组空洞会静默传染**：`_race_data.js` 是"一行一条"的数组字面量，若出现连续两个逗号（`,,`）就产生空洞（`length` 比对象数多）。`Array.map/join` 会把空洞当空串保留，所以空洞不会自愈、且会一路传下去（`daily_update` 也修不掉）。`insert_new_races` 已加"head 已带尾逗号则不再补"的保护；手工删行时注意别留下孤立 `,` 行。校验：`node -e "const a=require('./_race_data.js');let h=0;for(let i=0;i<a.length;i++)if(!(i in a))h++;console.log(a.length,a.filter(x=>x&&x.name).length,h)"`（三个数应满足 length == 对象数，空洞 0）。
+- **同步类步骤前必须重新解析 `existing`**：`auto_recalc_status` / `merge_existing_distances` 会重写行内容，之后仍拿旧的 `_raw` 去 `src.replace` 会**静默失败**（日志却照记"已修正"）。`main()` 里每次同步前都 `existing = _reparse()`。
+- **`detect_missing` 按名匹配，改名会误判**：运营方改名后（「漓江越野跑」→「第九届漓江越野跑」）名字对不上 → 连续 14 天"抓不到" → 误标 `cancelled`，而且**没有复活路径**。现在 `_still_listed()` 兜底按「±2 天 + 同省 + 名称高度相似/有共同词」判定，且已取消的重新抓到会**复活**。
 - **`MISSING_LOG` 必须按"天"累加**：曾按"每次运行"累加，一天内反复跑 merge 把 days 刷到 14 → 36 场被误标 `cancelled`（靠 `data_backup/` 一键回滚救回）。改 `detect_missing` 时务必保留 `last_missing != today` 的判断。
 - **missing 统计只覆盖"未过去 + zuicool 来源"的赛事**：① 已结束的赛事会从 zuicool 列表自然下架，统计它们会导致 14 天后被误标 cancelled；② 非 zuicool 来源（官网/tsaigu/ninghai100 等）永远不会出现在 zuicool 列表里，统计它们会被永久误判为 missing。
 - **每次更新前会自动备份**：`backup/race_data/`（本地 7 份）+ `data_backup/`（入库 3 份）；出问题直接 `cp` 回滚。
