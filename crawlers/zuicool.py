@@ -89,7 +89,7 @@ def list_page(page, session, where=''):
                 y = ry if (mo, dd) <= (rmo, rdd) else ry - 1
             else:
                 y = datetime.now().year
-            deadline = f'{y}-{mo:02d}-{dd:02d} {hh:02d}:{mi}'
+            deadline = f'{y}-{mo:02d}-{dd:02d} {hh:02d}:{mi:02d}'
         items.append({'id': rid, 'url': f'https://zuicool.com/event/{rid}',
                       'name': name, 'date': date, 'city': city, 'raw': raw,
                       'reg_deadline': deadline})
@@ -189,9 +189,26 @@ RE_LEAD_RANGE = re.compile(
 RE_LEAD_LOC = re.compile(r'(?:在\s*)+([一-龥]{2,12}(?:省|自治区)?[一-龥A-Za-z0-9·]{0,20}(?:市|州|盟|区)?[一-龥0-9A-Za-z·号]{0,24}?)\s*(?:开赛|开跑|举办|举行|启动|拉开|正式)')
 RE_LABEL_DIST = re.compile(r'(\d{1,3})\s*(?:KM|公里|K)', re.IGNORECASE)
 RE_LABEL_TAIL = re.compile(r'(\d{1,3})\s*K?\s*$')
+RE_DEC = re.compile(r'(\d{1,3}(?:\.\d+)?)\s*(?:KM|公里|K|km)', re.I)
+# 正文距离：'实际距离34公里'、'徒步距离17KM'，或行首无标签的 '26公里'
+RE_BODY_DIST = re.compile(
+    r'(?:实际距离|赛道(?:总)?长|赛程|活动距离|徒步距离|比赛距离|赛事距离|路线距离|里程|距离)'
+    r'\s*(?:约)?\s*(\d{1,3}(?:\.\d+)?)\s*(?:km|KM|Km|公里)'
+    r'|^\s*(\d{1,3}(?:\.\d+)?)\s*(?:km|KM|Km|公里)', re.I)
 RE_GROUP_CLIMB = re.compile(r'(?:累计爬升|累计上升|爬升|上升)\s*[:：]?\s*(?:约)?\s*(\d+(?:[,，]\d{3})*)\s*(?:米|m|M)')
-RE_GROUP_CUT_1 = re.compile(r'(?:总)?关门时长\s*(\d+)\s*(?:小时|h|H)\s*(?:(\d+)\s*(?:min|分钟))?')
-RE_GROUP_CUT_2 = re.compile(r'限时\s*(\d+(?:\.\d+)?)\s*(?:小时|h|H)')
+# 时刻：小时/分钟都要合法，且两侧不能再接数字（否则 'UTNH-100：11月' 里的 '00：11' 会被当时刻）
+# 秒也要一起吃掉：'23:59:59' 只遮前两段会漏下 ':59' 被当成 59K 组别（踩过：香港跨年越野赛）
+RE_CLOCK = re.compile(r'(?<!\d)((?:[01]?\d|2[0-3]))\s*[:：]\s*([0-5]\d)(?:\s*[:：]\s*[0-5]\d)?(?!\d)')
+_HOUR = r'(?:小时|h|H|个小时)'
+RE_CUT_HMIN = re.compile(r'(\d+)\s*' + _HOUR + r'\s*(\d+)\s*(?:分钟|min)', re.I)
+RE_CUT_DUR = re.compile(r'(?:总)?关门(?:时长|时限|时间)?\s*[:：]?\s*(\d+(?:\.\d+)?)\s*' + _HOUR
+                        + r'\s*(?:(\d+)\s*(?:min|分钟))?', re.I)
+RE_CUT_AFTER = re.compile(r'(\d+(?:\.\d+)?)\s*' + _HOUR + r'\s*关门')
+RE_CUT_PAREN = re.compile(r'[（(]\s*(\d+(?:\.\d+)?)\s*(?:个)?小时\s*[)）]')
+RE_CUT_XIAN = re.compile(r'限\s*(?:时\s*)?(\d+(?:\.\d+)?)\s*' + _HOUR, re.I)
+RE_CUT_DT = re.compile(r'(\d{1,2})\s*月\s*(\d{1,2})\s*日?\s*(?:上午|下午|晚上|凌晨)?\s*(\d{1,2})\s*[:：]\s*(\d{2})')
+RE_CUT_START = re.compile(r'出发时间')
+RE_CUT_CLOSE = re.compile(r'关门时间\s*(?!\d+(?:\.\d+)?\s*' + _HOUR + r')')
 # 官方站点：优先"官网：xxx"；裸域名仅接受已知赛事平台
 RE_OFFICIAL = re.compile(r'(?:官方网站?|赛事官网|官网|网站)\s*[:：]?\s*(?:https?://)?([a-z0-9][a-z0-9.\-]+\.[a-z]{2,})', re.IGNORECASE)
 RE_OFFICIAL_BARE = re.compile(r'\b([a-z0-9][a-z0-9\-]+\.(?:utmb\.world|saihuitong\.com|ihuipao\.com|xempower\.cn))\b', re.IGNORECASE)
@@ -214,9 +231,21 @@ def extract_official(text):
 MIN_KM, MAX_KM = 2, 200
 
 
+def _round_km(x):
+    """小数距离四舍五入（半向上）。不能用 round()：Python 是银行家舍入，
+    4.5 会被舍成 4、30.5 舍成 30，与"官方整数 K"的直觉相反。"""
+    return int(float(x) + 0.5)
+
+
 def _dist_from_label(label):
     """从组别标签提取官方距离（数字）。'DGW100'→100，'八荒六合168K'→168，'100公里组'→100，'3K禅村拾趣'→3。
+    小数优先取整（'MSA30.5K'→31，'15.2km'→15），否则 '30.5K' 会被截成 5。
     只接受 2-200 的合理距离（含少儿组短距离）。"""
+    m = RE_DEC.search(label)
+    if m:
+        v = _round_km(m.group(1))
+        if MIN_KM <= v <= MAX_KM:
+            return v
     vals = [int(m.group(1)) for m in RE_LABEL_DIST.finditer(label) if MIN_KM <= int(m.group(1)) <= MAX_KM]
     if vals:
         return vals[0]
@@ -224,6 +253,132 @@ def _dist_from_label(label):
     if m2 and MIN_KM <= int(m2.group(1)) <= MAX_KM:
         return int(m2.group(1))
     return None
+
+
+def _body_dist(detail):
+    """标签里没距离时（'揽胜组'、'The Third组'），从该行正文取距离。
+    '30公里，累计爬升1860米' / '实际距离34公里' 均可；不合理的不要。"""
+    for m in RE_BODY_DIST.finditer(detail):
+        v = _round_km(m.group(1) or m.group(2))
+        if MIN_KM <= v <= MAX_KM:
+            return v
+    return None
+
+
+_RE_LAP_PAREN = re.compile(r'[（(][^）)]*(?:\d+\s*圈|[xX×]\s*\d+)[^）)]*[）)]')
+_RE_ENUM_STOP = re.compile(r'(实际距离|累计爬升|累计上升|关门|限时|组别人数|名额|规模)')
+_RE_FIRST_DIST_PHRASE = re.compile(
+    r'(?:赛道(?:总)?长|赛道距离|实际距离|比赛距离|赛事距离|路线距离|徒步距离|活动距离|赛程|里程|全程|距离)'
+    r'\s*(?:约)?\s*(\d{1,3}(?:\.\d+)?)\s*(?:km|KM|Km|公里)', re.I)
+_RE_DIST_BEFORE_GROUP = re.compile(r'(?<![\d.])(\d{1,3}(?:\.\d+)?)\s*(?:km|KM|Km|公里)\s*[^\d，。；、]{0,8}?组')
+
+
+def _dist_from_first_line(first):
+    """首行兜底：只在"设A组、B组"这类组别枚举里取距离，绝不整行扫描。
+    首行常写赛道分段（'共计6.7公里，其中1.5公里…5.2公里'）、实际距离、名额，
+    整行扫会把它们当成组别（踩过：6.7/1.5/5.2 变成 7K/5K）。
+        '设5公里单人组、…、10公里单人组等组别'            → [10, 5]
+        '设长距离组(80公里)、短距离组(40公里)…三个组别'   → [80, 40, 15]
+        '设逐光50KM一个项目，实际距离47.2公里'            → [50]（遇"实际距离"即止）
+        '比赛线路共计6.7公里，其中1.5公里…'               → []
+    """
+    line = _RE_LAP_PAREN.sub(' ', first)          # 圈数/倍数说明（'（6K赛道x3圈）'）不是组别
+    i = line.find('设')
+    if i >= 0 and re.search(r'(组|项目|赛)', line[i:]):
+        tail = line[i:]
+        m = _RE_ENUM_STOP.search(tail)
+        if m:
+            tail = tail[:m.start()]
+        tail = re.split(r'[。；;]', tail)[0]
+        vals = []
+        for seg in re.split(r'[、，,/]', tail):
+            # 标记（组/项目/赛）常只出现在枚举末尾（'设10KM、18KM两个项目'），
+            # 此时枚举内的纯距离段（'10KM'）也是组别 —— 已在"设"锚点内，可放心取距离。
+            dm = RE_DEC.search(seg) if (re.search(r'(组|项目|赛)', seg) or re.search(r'(组|项目|赛)', tail)) else None
+            if dm:
+                v = _round_km(dm.group(1))
+                if MIN_KM <= v <= MAX_KM:
+                    vals.append(v)
+        if vals:
+            return vals
+    m = _RE_FIRST_DIST_PHRASE.search(line)
+    if m:
+        v = _round_km(m.group(1))
+        if MIN_KM <= v <= MAX_KM:
+            return [v]
+    m = re.search(r'[一-龥]{0,6}环线\s*(?:约)?\s*(\d{1,3}(?:\.\d+)?)\s*(?:km|KM|Km|公里)', line)
+    if m:
+        v = _round_km(m.group(1))
+        if MIN_KM <= v <= MAX_KM:
+            return [v]
+    vals = []
+    for dm in _RE_DIST_BEFORE_GROUP.finditer(line):
+        v = _round_km(dm.group(1))
+        if MIN_KM <= v <= MAX_KM:
+            vals.append(v)
+    return vals
+
+
+def _plausible(km, h):
+    """关门时长合理性闸门：0.4-40 小时，且配速落在 0.15-1.6 h/km。不满足一律丢弃。"""
+    if h is None or not (0.4 <= h <= 40):
+        return False
+    if not km or km <= 0:
+        return False
+    return 0.15 <= h / km <= 1.6
+
+
+def _cut_from_detail(detail):
+    """从一个组别行正文抽关门时长（小时，float）。认六种写法，缺失返回 None：
+        关门时长25小时 / 关门时间6小时 / 7.5小时关门 / 关门时间14:00（7小时）
+        限时6小时 / 出发时间10月11日8:00…关门时间10月11日14:30
+    """
+    m = RE_CUT_HMIN.search(detail)                    # 1小时35分钟
+    if m:
+        return int(m.group(1)) + int(m.group(2)) / 60.0
+    m = RE_CUT_DUR.search(detail)                     # 关门时长25小时 / 关门时间6小时
+    if m:
+        return float(m.group(1)) + (int(m.group(2)) / 60.0 if m.group(2) else 0)
+    ms = RE_CUT_AFTER.findall(detail)                 # 7.5小时关门：取最后一个（CP 在前、终点在后）
+    if ms:
+        return float(ms[-1])
+    m = RE_CUT_PAREN.search(detail)                   # 关门时间14:00（7小时）
+    if m:
+        return float(m.group(1))
+    m = RE_CUT_XIAN.search(detail)                    # 限时6小时
+    if m:
+        return float(m.group(1))
+    sm, cm = RE_CUT_START.search(detail), RE_CUT_CLOSE.search(detail)
+    if sm and cm and cm.start() > sm.end():
+        a = RE_CUT_DT.search(detail[sm.end():cm.start()])
+        b = RE_CUT_DT.search(detail[cm.end():])
+        if a and b:
+            m1 = int(a.group(2)) * 1440 + int(a.group(3)) * 60 + int(a.group(4))
+            m2 = int(b.group(2)) * 1440 + int(b.group(3)) * 60 + int(b.group(4))
+            d = m2 - m1
+            if 0 < d <= 72 * 60:
+                return d / 60.0
+        ca, cb = RE_CLOCK.search(detail[sm.end():cm.start()]), RE_CLOCK.search(detail[cm.end():])
+        if ca and cb:
+            d = (int(cb.group(1)) * 60 + int(cb.group(2))) - (int(ca.group(1)) * 60 + int(ca.group(2)))
+            if d <= 0:
+                d += 24 * 60
+            if 0 < d <= 72 * 60:
+                return d / 60.0
+    return None
+
+
+_re_split_line = re.compile(r'[：:]')
+
+
+def _split_label(line):
+    """按第一个冒号拆成 标签|正文。先屏蔽时刻里的 ASCII 冒号（'8:00'），
+    否则 re.split 会切在时钟上，标签与正文双双错位。"""
+    masked = RE_CLOCK.sub(lambda m: m.group(0).replace(':', '\x00').replace('：', '\x00'), line)
+    parts = _re_split_line.split(masked, maxsplit=1)
+    if len(parts) < 2:
+        return None
+    return parts[0].replace('\x00', ':'), parts[1].replace('\x00', ':')
 
 
 def _parse_lead_block(lead_text):
@@ -239,7 +394,8 @@ def _parse_lead_block(lead_text):
     lines = [l.strip() for l in lead_text.split('\n') if l.strip()]
     if not lines:
         return out
-    first = lines[0]
+    # 首行常是"延期提示/调整提醒"公告，真正的赛事导语在下一行（含"定于…"）
+    first = next((l for l in lines if '定于' in l), lines[0])
     # 日期范围
     m = RE_LEAD_RANGE.search(first)
     if m:
@@ -262,42 +418,93 @@ def _parse_lead_block(lead_text):
     # 组别（逐行）：按第一个冒号拆成 标签|详情
     seen = {}
     for line in lines:
-        if '：' not in line and ':' not in line:
+        sp = _split_label(line)
+        if not sp:
             continue
-        label, detail = re.split(r'[：:]', line, maxsplit=1)
-        if not re.search(r'(实际距离|累计爬升|累计上升|关门|限时|组别人数)', detail):
-            continue
+        label, detail = sp
         km = _dist_from_label(label)
+        # 组别行正文一般写着距离/爬升/关门；但"两日赛/组合组"这类
+        # （'卓越组36KM（两日赛）：同时参加…12公里组+…24公里组'）正文只有赛制说明，
+        # 距离只写在标签里 —— 标签自身带「组/项目 + 距离」也算组别行，否则整组被丢掉。
+        if not re.search(r'(实际距离|累计爬升|累计上升|关门|限时|组别人数)', detail) \
+                and not (km is not None and re.search(r'(组|项目)', label)):
+            continue
+        if km is None:
+            km = _body_dist(detail)          # 标签无距离（'揽胜组'）→ 用正文距离
         if km is None:
             continue
         item = {'d': f'{km}K'}
         cm = RE_GROUP_CLIMB.search(detail)
         if cm:
             item['climb'] = cm.group(1).replace(',', '').replace('，', '') + 'm'
-        tm = RE_GROUP_CUT_1.search(detail)
-        if tm:
-            hours = float(tm.group(1))
-            if tm.group(2):
-                hours += int(tm.group(2)) / 60.0
-            item['time'] = f'{hours:g}h'
-        else:
-            tm2 = RE_GROUP_CUT_2.search(detail)
-            if tm2:
-                item['time'] = f'{float(tm2.group(1)):g}h'
+        h = _cut_from_detail(detail)
+        if _plausible(km, h):
+            item['time'] = f'{round(h, 2):g}h'
         # 同距离去重：保留信息更多的
         score = (1 if item.get('climb') else 0) + (1 if item.get('time') else 0)
         prev = seen.get(km)
         if prev is None or score > prev[0]:
             seen[km] = (score, item)
-    # 兜底：无逐行详情时，从首行“设A、B、C组别”扫距离
-    # 注意：不匹配“N组”（意为 N 个名额/队伍，如「200组」），只认 km/公里/K
+    # 兜底：详情页没有逐行组别时，只从首行的"设A、B、C组"枚举里取，
+    # 绝不整行扫 km —— 首行常写赛道分段（'6.7公里，其中1.5公里…5.2公里'）、
+    # 实际距离与名额，整行扫会把它们当组别。
     if not seen:
-        for dm in re.finditer(r'(\d{1,3})\s*(?:KM|公里|K)', first, re.IGNORECASE):
-            v = int(dm.group(1))
-            if MIN_KM <= v <= MAX_KM:
-                seen[v] = (0, {'d': f'{v}K'})
+        for v in _dist_from_first_line(first):
+            seen.setdefault(v, (0, {'d': f'{v}K'}))
     out['distances'] = [v[1] for _, v in sorted(seen.items(), key=lambda x: -x[0])]
+    # 单组别赛事：爬升/关门常直接写在导语首行
+    if len(out['distances']) == 1:
+        item = out['distances'][0]
+        if 'climb' not in item:
+            cm = RE_GROUP_CLIMB.search(first)
+            if cm:
+                item['climb'] = cm.group(1).replace(',', '').replace('，', '') + 'm'
+        if 'time' not in item:
+            km = int(re.match(r'(\d+)', item['d']).group(1))
+            h = _cut_from_detail(first)
+            if _plausible(km, h):
+                item['time'] = f'{round(h, 2):g}h'
     return out
+
+
+def _parse_pkg_block(soup):
+    """解析 div.event-pkgs 报名包块（详情页 lead 块没写组别时的兜底）。
+    每组一个 .pkg2：h4.name = 组别名（常带距离，'男子组（6.7公里）'），
+    small.highlight_short = '100公里组：累计爬升5458m，…，关门时长30h，规模200人'。
+    返回 (distances, has_block)。**无包块返回 ([], False)** —— 绝不把"缺块"当"空组别"。"""
+    box = soup.select_one('div.event-pkgs')
+    if not box:
+        return [], False
+    pkgs = box.select('.pkg2')
+    if not pkgs:
+        return [], False
+    seen = {}
+    for p in pkgs:
+        h = p.select_one('h4.name')
+        label = h.get_text(' ', strip=True) if h else ''
+        if not label:
+            continue
+        detail = ' '.join(sm.get_text(' ', strip=True) for sm in p.select('small.highlight_short'))
+        km = _dist_from_label(label)
+        if km is None:
+            km = _body_dist(detail)
+        if km is None:
+            continue
+        item = {'d': f'{km}K'}
+        cm = RE_GROUP_CLIMB.search(detail)
+        if cm:
+            item['climb'] = cm.group(1).replace(',', '').replace('，', '') + 'm'
+        hh = _cut_from_detail(detail)
+        if _plausible(km, hh):
+            item['time'] = f'{round(hh, 2):g}h'
+        # 同距离去重（'100公里组'/'100公里双人同行组'）：保留字段更全的
+        score = (1 if item.get('climb') else 0) + (1 if item.get('time') else 0)
+        prev = seen.get(km)
+        if prev is None or score > prev[0]:
+            seen[km] = (score, item)
+    if not seen:
+        return [], True
+    return [v[1] for _, v in sorted(seen.items(), key=lambda x: -x[0])], True
 
 
 def parse_detail(html):
@@ -306,6 +513,9 @@ def parse_detail(html):
         return None
     from bs4 import BeautifulSoup
     soup = BeautifulSoup(html, 'html.parser')
+    # 侧栏"相关赛事/推荐"是**别的**赛事的内容，整块剔除，否则日期/地点/距离都会被污染
+    for el in soup.select('.events-list'):
+        el.decompose()
     text = soup.get_text('\n', strip=True)
     # 名称
     name = ''
@@ -367,10 +577,31 @@ def parse_detail(html):
                 if m5:
                     date = f"{year}-{int(m5.group(1)):02d}-{int(m5.group(2)):02d}"
 
-    # —— 组别：优先 lead 块，其次正文兜底 ——
+    # —— 组别：优先 lead 块，其次报名包块，最后正文兜底 ——
     distances = lead_out['distances']
+    # 组别是否"权威"（可据此删掉库里页面上没有的旧 key）：解析出了组别，
+    # 或页面压根没有"设…组/项目/赛"的枚举（=这赛事不分组，旧值必是脏数据）。
+    # 页面有枚举但我们一个都没解析出来 → 判为解析失败，保留旧值，不删。
+    lead_has_enum = bool(re.search(r'设[^。；]{0,200}?(组|项目|赛)', lead_text))
+    # 兜底 ①：详情页右上角的"报名组别"包块（div.event-pkgs）。lead 块只写了赛道分段
+    # 与名额、没写组别时（狼牙山：'比赛线路共计6.7公里，其中1.5公里…'），组别只在这里。
+    pkg_dists, has_pkg_block = ([], False)
     if not distances:
-        # 兜底：正文里扫 km（旧逻辑，仅当无结构化块时启用）
+        pkg_dists, has_pkg_block = _parse_pkg_block(soup)
+    if not distances and pkg_dists:
+        distances = pkg_dists
+    # 页面有 lead 块却一句组别都没有（包块也没有）、且导语写着"拟定/敬请期待"
+    # → 选手册尚未公布，合并层据此清掉库里的旧组别（旧值多来自历史整页扫 km，是脏数据）
+    pending_groups = not distances and bool(lead_text) and bool(
+        re.search(r'(拟定|敬请期待|即将启动报名|尚未|未定|待定)', lead_text))
+    # 包块本身是官方枚举 → 有数据即可作权威；但不能在"lead 写了设…组却解析失败"时
+    # 逆转判定，那种情况仍按解析失败处理，保留旧值。
+    pkg_auth = has_pkg_block and bool(pkg_dists) and not lead_has_enum
+    authoritative = (bool(lead_text) and (bool(distances) or not lead_has_enum)) or pkg_auth
+    if not distances and not lead:
+        # 兜底：**仅当页面没有结构化 lead 块**（老页面）时才全文扫 km。
+        # 有 lead 块却没解析出组别 = 页面确实没写组别（"敬请期待"），此时整页扫会把
+        # 赛道分段/名额/侧栏内容当成组别（踩过：狼牙山 6.7/5.2 公里变成 7K/5K）。
         km_positions = []
         for km_m in re.finditer(r'(?<!\.\d)\D(\d{1,3})(?:\s*)(?:km|KM|公里)(?!\d)', text):
             try:
@@ -393,13 +624,9 @@ def parse_detail(html):
                 cm = re.search(r'[+＋]\s*(\d+(?:[,，]\d{3})*)\s*[Mm]', seg)
             if cm:
                 item['climb'] = cm.group(1) + 'm'
-            tm = re.search(r'(?:总)?关门时长[:：]?\s*(\d+(?:\.\d+)?)\s*小时', seg)
-            if not tm:
-                tm = re.search(r'（\s*(\d+(?:\.\d+)?)\s*小时\s*）', seg)
-            if not tm:
-                tm = re.search(r'限时\s*(\d+(?:\.\d+)?)\s*小时', seg)
-            if tm:
-                item['time'] = tm.group(1) + 'h'
+            h = _cut_from_detail(seg)
+            if _plausible(v, h):
+                item['time'] = f'{round(h, 2):g}h'
             distances.append(item)
 
     # —— 地点：优先 lead 块 ——
@@ -423,6 +650,9 @@ def parse_detail(html):
         'province': province,
         'city': city or '',
         'distances': distances,
+        # lead 块 = 官方组别枚举，页面上没有的旧 key 即为脏数据 → 合并层可删
+        'dists_authoritative': authoritative,
+        'dists_pending': pending_groups,
         'tags': tags_from_page(html, name),
         'wechat': wechat,
         'official': official,
@@ -468,6 +698,16 @@ def _title_matches(page_title, race_name):
 def _hardnorm(s):
     """只留中英文数字，去掉标点/空格，用于标题比对。"""
     return re.sub(r'[^0-9a-zA-Z一-鿿]', '', s or '').lower()
+
+
+def _pick_city(cached, card):
+    """未抓详情的条目该用哪个地点：列表卡片是"当天在售"的权威地点，详情页缓存可能早已
+    失效（改址 / event id 复用 / 正则截断，曾出现「延边100」缓存成长春伊通河）。
+    卡片本身写成「主会场…，分会场…」这类长句时不适合当 city，退回缓存。"""
+    card = (card or '').strip()
+    if not card or len(card) > 40 or '，' in card:
+        return cached or card
+    return card
 
 
 def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
@@ -552,10 +792,14 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
         date_ = it['date'] or info.get('date')
         if not name or not date_:
             continue
-        city = info.get('city') or it.get('city') or ''
+        card_city = it.get('city') or ''
+        if rid in fetched:
+            city = info.get('city') or card_city
+        else:
+            # 未抓详情：缓存可能已失效，卡片是当天在售状态的权威地点
+            city = _pick_city(info.get('city'), card_city)
         # 列表卡片是"当前在售状态"的权威来源：卡片省份与详情/缓存冲突时以卡片为准
         # （详情页地点常写成报名点/相关赛事；增量跳过的条目还会沿用旧缓存，历史上造成过省份错配）
-        card_city = it.get('city') or ''
         card_core = card_city[2:] if card_city.startswith('中国') else card_city
         card_prov = split_province_city(card_city)[0] if card_city else ''
         city_prov = split_province_city(city)[0] if city else ''
@@ -575,6 +819,10 @@ def crawl(full=False, today=None, max_pages=MAX_PAGES, min_date=MIN_DATE):
             'province': province,
             'city': city,
             'distances': info.get('distances', []),
+            # lead 块 = 官方组别枚举 → 合并层可删掉库里页面上没有的旧组别（脏 key）
+            'dists_authoritative': bool(info.get('dists_authoritative')),
+            # 详情页明确写着"拟定/敬请期待"且无组别 → 合并层可清掉库里的旧组别
+            'dists_pending': bool(info.get('dists_pending')),
             'tags': info.get('tags') or (infer_tags(name) if rid in fetched else []),
             'link': it['url'],
             'wechat': info.get('wechat'),

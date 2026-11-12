@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'crawlers'))
 from _lib.parse import normalize_name
 from _lib.tags import TORX_KW
+from _lib.province import PROVINCES as _PROVINCES
 
 OUT_DIR = ROOT / 'crawl' / 'output'
 DATA_FILE = ROOT / '_race_data.js'
@@ -160,8 +161,77 @@ def _names_similar(a, b):
     return SequenceMatcher(None, na, nb).ratio() >= 0.85
 
 
-def dedupe_final(src):
-    """最终去重：同 link_key / 同 (name_norm,date) / 同日近似名 只保留信息最全的一条。"""
+def _sponsor_variant(a, b):
+    """同日 + 同省，且规范化后一方是另一方的**后缀** → 同一赛事，只是多了冠名商/届次前缀。
+    「伯希和·2026崇义100超级越野赛」vs「2026崇义100越野赛」、
+    「MAMMUT猛犸象2026第二届亚布力天空越野赛」vs「2026亚布力天空越野赛」、
+    「2026凯乐石广州100越野赛」vs「2026广州100越野赛」。
+    要求公共部分 ≥4 字（'崇义100'/'广州100'），避免把「XX越野赛」这类泛化短名卷进来。
+    与 `_names_similar` 不同，这条**允许同源**：最酷同一个赛事常并存两个 listing
+    （一个只有预告、一个带完整组别），按 id 和按 (名,日期) 都拦不住。"""
+    if not a.get('date') or a.get('date') != b.get('date'):
+        return False
+    pa, pb = a.get('province'), b.get('province')
+    if pa and pb and pa != pb:
+        return False
+    na, nb = normalize_name(a.get('name', '')), normalize_name(b.get('name', ''))
+    if not na or not nb or na == nb:
+        return False
+    lo, hi = (na, nb) if len(na) <= len(nb) else (nb, na)
+    return len(lo) >= 4 and hi.endswith(lo)
+
+
+def _twin_related(db, cr):
+    """库条目与另一 listing 是否是"同一场赛事的两个 listing"。
+    规范化后同名 → 直接成立（爬虫的 wechat 偶尔会解析成"已截止"这类卡片噪声，
+    此时不能再要求 wechat 相同）；否则要求两边 wechat 相同且非空，再按
+    「包含 ≥6 字」/「公共子序列 ≥9 字」判定，避免把同日同省的两场比赛卷进来。"""
+    nd, nc = normalize_name(db.get('name', '')), normalize_name(cr.get('name', ''))
+    if not nd or not nc:
+        return False
+    if nd == nc:
+        return True
+    wd, wc = db.get('wechat'), cr.get('wechat')
+    if not wd or wd != wc:
+        return False
+    if (nd in nc or nc in nd) and min(len(nd), len(nc)) >= 6:
+        return True
+    from difflib import SequenceMatcher
+    return sum(b.size for b in SequenceMatcher(None, nd, nc).get_matching_blocks()) >= 9
+
+
+def _preview_twin(a, b, crawled):
+    """同一赛事在最酷并存的两个 listing：一条只有预告（永远没有组别）、一条带完整组别。
+    如「第十八届环泰山T60冬季越野赛」21641(60K/32K) vs 34932(空)、
+    「中国山地越野公开赛（抚宁站）…冰塘峪长城」92156 vs「…燕北长城」60027(空)。
+    闸门：两边都是 zuicool、同日、同省、**恰有一边**无组别、且无组别那边的爬虫记录
+    此刻也确实没有组别（若爬虫已给出组别，那是"该补组别"而非"该删条目"，交给
+    `merge_existing_distances`）。名字相关性见 `_twin_related`。"""
+    ka, kb = link_key(a.get('link', '')), link_key(b.get('link', ''))
+    if not ka.startswith('zuicool:') or not kb.startswith('zuicool:') or ka == kb:
+        return False
+    if not a.get('date') or a.get('date') != b.get('date'):
+        return False
+    if not a.get('province') or a.get('province') != b.get('province'):
+        return False
+    da, db = a.get('distances') or [], b.get('distances') or []
+    if bool(da) == bool(db):
+        return False
+    empty, rich = (a, b) if not da else (b, a)
+    live = {}
+    for r in (crawled or {}).get('zuicool', []):
+        k = link_key(r.get('link', ''))
+        if k.startswith('zuicool:'):
+            live[k] = r
+    own = live.get(link_key(empty.get('link', '')))
+    if own is None or (own.get('distances') or []):
+        return False
+    return _twin_related(empty, rich)
+
+
+def dedupe_final(src, crawled=None):
+    """最终去重：同 link_key / 同 (name_norm,date) / 同日近似名 /
+    同源预告孪生 只保留信息最全的一条。"""
     entries = parse_races_text(src)
     from collections import defaultdict
     groups = defaultdict(list)
@@ -189,7 +259,9 @@ def dedupe_final(src):
             # 只对"不同来源"做模糊合并：模糊规则的目的是抹平跨平台的赞助商前缀/翻译差异。
             # 同一来源在同一天、同地点出现相似名，多是同场赛事的**不同组别/不同赛事**
             # （如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail），不能合并。
-            if any(_names_similar(e, k) and host_of(e.get('link', '')) != host_of(k.get('link', ''))
+            if any((_names_similar(e, k) and host_of(e.get('link', '')) != host_of(k.get('link', '')))
+                   or _sponsor_variant(e, k)
+                   or (crawled is not None and _preview_twin(e, k, crawled))
                    for k in chosen):
                 drop.append(e)
             else:
@@ -370,14 +442,21 @@ def normalize_race(r):
     return r
 
 
+_PROV_IS_RE = re.compile(
+    '^(' + '|'.join(sorted((re.escape(p) for p in _PROVINCES), key=len, reverse=True)) + ')\\s*是\\s*')
+
+
 def clean_city(city):
-    """清洗地点串：去掉换行、"关注"按钮文字、误带的"地点/改至"前缀与尾部标点。"""
+    """清洗地点串：换行、"关注"按钮、"地点为/改至"前缀、"北京是昌平"粘字、竖线分隔与尾部标点。"""
     if not city:
         return ''
     s = str(city).replace('\n', ' ').replace('\r', ' ')
     s = s.replace('关注', '')
     s = re.sub(r'^地点[:：]?\s*', '', s)
+    s = re.sub(r'^为\s*', '', s)
     s = re.sub(r'^(改至|迁至)\s*', '', s)
+    s = _PROV_IS_RE.sub(lambda m: m.group(1) + ' ', s)
+    s = s.replace('|', '·')
     s = s.strip(' ,，。·、;；')
     s = re.sub(r'\s+', ' ', s).strip()
     return s
@@ -473,6 +552,196 @@ def auto_recalc_status(existing, src):
     return new_src, changed
 
 
+def drop_impossible_enddate(existing, src):
+    """endDate 早于 date 是不可能区间（解析噪声：曾把"报名截止"或别的日子当结束日）。
+    status 判定依赖 endDate，所以要在 auto_recalc_status 之前清掉。
+    爬虫这次没给 end_date 时没有任何步骤会清它，因此必须兜底。"""
+    new_src = src
+    changed = []
+    for e in existing:
+        d, ed = e.get('date') or '', e.get('endDate') or ''
+        if not d or not ed or ed >= d:
+            continue
+        raw = e['_raw']
+        new_raw = re.sub(r',\s*endDate:"((?:[^"\\]|\\.)*)"', '', raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            changed.append(f"{e['name'][:24]}: {d}~{ed}")
+    return new_src, changed
+
+
+def sync_link(existing, crawled, src):
+    """库里的 zuicool link 已失效（event id 从列表彻底消失），但同一场赛事以新 id 在售
+    （最酷会新建 listing 再删掉旧 id）→ 把 link 指到新 id。
+    不改的话这条永远匹配不上爬虫，组别/日期/报名截止再也不会更新
+    （如「贺州姑婆山」51987→72712、「大武夷」10518→35539、「XTERRA太湖」35355→94604）。
+    闸门：① 旧 id 确实不在爬虫产物里；② 新条目日期相同；③ 名字规范化后相同或一方包含
+    另一方（防把 2026 届指到 2027 届）；④ 新 id 没被别的库条目占用。"""
+    alive, by_norm_date, pool = set(), {}, []
+    for plat, races in crawled.items():
+        for r in races:
+            k = link_key(r.get('link', ''))
+            if not k.startswith('zuicool:'):
+                continue
+            alive.add(k)
+            pool.append(r)
+            n = normalize_name(r.get('name', ''))
+            if n and r.get('date'):
+                by_norm_date.setdefault((n, r['date']), []).append(r)
+    used = {link_key(e.get('link', '')) for e in existing if e.get('link')}
+    new_src = src
+    changed = []
+    for e in existing:
+        old = link_key(e.get('link', ''))
+        if not old.startswith('zuicool:') or old in alive:
+            continue
+        n, dt = normalize_name(e.get('name', '')), e.get('date') or ''
+        cands = list(by_norm_date.get((n, dt), []))
+        if not cands:
+            for r in pool:
+                if r.get('date') != dt:
+                    continue
+                rn = normalize_name(r.get('name', ''))
+                if rn and n and (rn in n or n in rn):
+                    cands.append(r)
+        cands = [r for r in cands if link_key(r.get('link', '')) not in used]
+        if len(cands) != 1:
+            continue
+        target = cands[0]['link']
+        raw = e['_raw']
+        new_raw = re.sub(r'link:"((?:[^"\\]|\\.)*)"',
+                         'link:' + json.dumps(target, ensure_ascii=False), raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            used.add(link_key(target))
+            changed.append(f"{e['name'][:26]}: {old} → {link_key(target)}")
+    return new_src, changed
+
+
+def upgrade_preview_links(existing, crawled, src):
+    """库里的 zuicool 条目挂在"只有预告、永远没有组别"的 listing 上，而同一赛事在售的
+    另一个 listing 带完整组别 → 把 link 指到有组别的那个。
+    例：「长江万时山跑山赛」32077(空) → 58193(24K/10K)、
+    「廉岭古道越野赛」91597(空) → 16212(42K/25K/6K)。
+    这类孪生 listing 名字只差标点/年份，按 (名,日期) 撞 key、按 link 又不同，
+    结果带组别的那条永远进不了库，库里那条永远是空组别。
+    闸门：① 库里这条无组别，且它自己的 listing 本轮确实仍无组别（否则该补组别而非换 link）；
+    ② 目标 listing 同日、同省、有组别、且没被别的库条目占用；
+    ③ 名字相关性见 `_twin_related`；④ 最佳候选必须唯一（同分则跳过，宁可不动）。
+    换 link 的同时把该 listing 的组别一并写入：`merge_existing_distances` 只允许"本轮真抓
+    过详情"的 zuicool 条目改库，而这条 listing 通常是增量跳过、用上次输出的旧值，
+    单靠换 link 组别永远补不进来。这里只写"库原本为空"的行，不存在覆盖已有数据的风险。"""
+    live = {}
+    for r in (crawled or {}).get('zuicool', []):
+        k = link_key(r.get('link', ''))
+        if k.startswith('zuicool:'):
+            live[k] = r
+    rich = [r for r in live.values() if r.get('distances')]
+    used = {link_key(e.get('link', '')) for e in existing if e.get('link')}
+    new_src = src
+    changed = []
+    for e in existing:
+        if e.get('distances'):
+            continue
+        old = link_key(e.get('link', ''))
+        if not old.startswith('zuicool:'):
+            continue
+        own = live.get(old)
+        if own is None or (own.get('distances') or []):
+            continue
+        if not e.get('date') or not e.get('province'):
+            continue
+        cands = []
+        for r in rich:
+            tk = link_key(r.get('link', ''))
+            if tk == old or tk in used:
+                continue
+            if r.get('date') != e['date'] or r.get('province') != e['province']:
+                continue
+            if _twin_related(e, r):
+                cands.append((tk, r))
+        if len(cands) != 1:
+            continue
+        tk, r = cands[0]
+        raw = e['_raw']
+        new_raw = re.sub(r'link:"((?:[^"\\]|\\.)*)"',
+                         'link:' + json.dumps(r['link'], ensure_ascii=False), raw, count=1)
+        dist_str = ','.join(
+            '{d:"' + str(d.get('d', '')) + '"'
+            + (',climb:"' + d['climb'] + '"' if d.get('climb') else '')
+            + (',time:"' + d['time'] + '"' if d.get('time') else '') + '}'
+            for d in r['distances']
+        )
+        if 'distances:[]' in new_raw:
+            new_raw = new_raw.replace('distances:[]', 'distances:[' + dist_str + ']', 1)
+        else:
+            new_raw = re.sub(r'distances:\[[^\]]*\]', 'distances:[' + dist_str + ']',
+                             new_raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            used.add(tk)
+            changed.append(f"{e['name'][:26]}: {old} → {tk} "
+                           f"({','.join(d.get('d', '') for d in r['distances'])})")
+    return new_src, changed
+
+
+def _dist_sig(e):
+    """组别签名：{距离: (爬升, 关门)}，用于判定"是不是同一场"。"""
+    return {d['d']: (d.get('climb') or '', d.get('time') or '')
+            for d in (e.get('distances') or []) if d.get('d')}
+
+
+def _dist_key(d):
+    """组别名 → 距离键：'10K徒步' / '10K' / '5K亲子' 都归一成 '10K' / '5K'。"""
+    m = re.match(r'\s*(\d+)\s*[Kk]', d or '')
+    return (m.group(1) + 'K') if m else (d or '').lower()
+
+
+def sync_rename(existing, crawled, src):
+    """同一 event id 仍在售、但赛事改名了（加冠名商、系列名、换主办方）→ 用爬虫的当前名。
+    例：「『破云而上』粤西之巅越野赛」→「2026广东环云开山越野赛」（正文里仍写着
+    "破云而上…站上粤西之巅"，同一场）、「京西·小红点 西山越野荟」→「西山越野荟·北京模式口站」。
+    同步类步骤都按名字匹配，不跟上的话这条既不会被 missing 判活（cancelled 永远复活不了），
+    组别也再也不会更新。
+    闸门（防把 id 复用误当成改名）：① link 是 zuicool 且该 id 本轮仍在爬虫产物里；
+    ② 日期相同；③ 省份相同；④ 距离键集合相同或一方包含另一方且非空；⑤ title_ok 没被判不匹配。
+    距离集合已经卡死了"同 id 同日期同省但组别完全不同"的 id 复用（如 35355、梅里100的脏组别）。"""
+    alive = {}
+    for plat, races in crawled.items():
+        for r in races:
+            alive[link_key(r.get('link', ''))] = (plat, r)
+    new_src = src
+    changed = []
+    for e in existing:
+        old = link_key(e.get('link', ''))
+        if not old.startswith('zuicool:'):
+            continue
+        hit = alive.get(old)
+        if not hit or hit[0] != 'zuicool':
+            continue
+        r = hit[1]
+        if r.get('title_ok') is False:
+            continue
+        ne, nc = normalize_name(e.get('name', '')), normalize_name(r.get('name', ''))
+        if not nc or ne == nc:
+            continue
+        if e.get('date') != r.get('date'):
+            continue
+        if e.get('province') and r.get('province') and e['province'] != r['province']:
+            continue
+        ka = {_dist_key(d) for d in _dist_sig(e)}
+        kb = {_dist_key(d) for d in _dist_sig(r)}
+        if not ka or not kb or not (ka == kb or ka <= kb or kb <= ka):
+            continue
+        raw = e['_raw']
+        new_raw = re.sub(r'name:"((?:[^"\\]|\\.)*)"',
+                         'name:' + json.dumps(r['name'], ensure_ascii=False), raw, count=1)
+        if new_raw != raw:
+            new_src = new_src.replace(raw, new_raw, 1)
+            changed.append(f"{e['name'][:24]} → {r['name'][:24]}")
+    return new_src, changed
+
+
 def _crawler_index(crawled):
     """爬虫产物索引：{normalize_name} + {date: [(norm, province)]}。"""
     found, by_date = set(), {}
@@ -533,6 +802,25 @@ def _shares_token(a, b, k=3):
     if len(a) < k or len(b) < k:
         return False
     return any(a[i:i + k] in b for i in range(len(a) - k + 1))
+
+
+def _same_race_by_id(e, r):
+    """库条目 e 与爬虫条目 r 是否可能是同一场（同 event id 但名字变了）。
+    zui 的 event id 偶有复用（35355 从「XTERRA太湖」变成「北京户外轨迹训练营」，
+    45459 从「破云而上粤西之巅」变成「广东环云开山」），所以不能只凭 id 认人。
+    判据：同名/包含关系，或（同省 + 同日 + 有共同地名片段）。"""
+    from difflib import SequenceMatcher
+    hn = re.sub(r'20\d{2}', '', _hardnorm(e.get('name', '')))
+    hc = re.sub(r'20\d{2}', '', _hardnorm(r.get('name', '')))
+    if not hn or not hc:
+        return False
+    if hn == hc or hn in hc or hc in hn:
+        return True
+    if SequenceMatcher(None, hn, hc).ratio() >= 0.5:
+        return True
+    same_prov = e.get('province') and e.get('province') == r.get('province')
+    same_date = e.get('date') and e.get('date') == r.get('date')
+    return bool(same_prov and same_date and _shares_token(hn, hc, 4))
 
 
 def detect_missing(existing, crawled):
@@ -636,9 +924,14 @@ def detect_new(existing, crawled, claimed=None):
             # 同日近似名（标点/赞助商前缀差异）也与现有重复 → 不新增；
             # 但**仅当来源不同**：同源同日同地点的相似名多是不同组别/不同赛事
             # （如 Skyrunning 的 Mourne SkyUltra 与 Mourne SkyTrail 同日同地）
+            # 例外：同名同赛事但加了冠名商前缀（「伯希和·2026崇义100超级越野赛」vs
+            # 「2026崇义100越野赛」）—— 若新条目组别更全，就放它进来，让 dedupe_final
+            # 按信息量保留更全的那条（用户要求：以数据全的为准）
             cand = {'name': name, 'date': date, 'province': r.get('province', '')}
             _ch = host_of(link)
-            if any(_names_similar(cand, e) and _ch != host_of(e.get('link', ''))
+            _n_new = len(r.get('distances') or [])
+            if any((_names_similar(cand, e) and _ch != host_of(e.get('link', '')))
+                   or (_sponsor_variant(cand, e) and len(e.get('distances') or []) >= _n_new)
                    for e in existing_by_date.get(date, [])):
                 continue
             # UTMB 全球站的中国/港澳台场次 → 最酷网才是权威来源。同日已有「… by UTMB」条目
@@ -752,14 +1045,59 @@ def _city_key(c):
     return re.sub(r'(省|市|自治州|自治区|地区|县|区|镇|乡|村|社区|街道|广场|公园|景区|游客中心|服务中心|门前|门口)', '', c)
 
 
+def _is_subseq(a, b):
+    it = iter(b)
+    return all(ch in it for ch in a)
+
+
 def _city_conflicts(a, b):
-    """两条城市串是否"明显不是同一处"（规范化后互不包含）。
-    仅凭不同就覆盖会把 300 条只是写法差异的（"毕节市七星关区·同心公园" ↔
-    "贵州·毕节·七星关·同心公园广场"）也一起改掉，所以要求互不包含才算冲突。"""
+    """两条城市串是否"明显不是同一处"。
+    仅凭不同就覆盖会把 200+ 条只是写法差异的（"浙江 宁波市 余姚市 大隐镇天下玉苑景区"
+    ↔ "浙江省余姚市大隐镇天下玉苑景区"）也一起改掉，而且往往用更粗的串覆盖更细的串。
+    所以要求：互不包含，且互相都不是对方的子序列（"大理白族自治州…鸡足山镇"
+    与 "大理州…鸡足山镇" 这种只是省/州级写法省略）。
+    另外，爬虫的 city 正则会在括号/特殊字符处**截断**（"…天门沟景区(九州驿站)" 只取到
+    "…天门沟景"），截断串是旧值的严格前缀 → 这时保留库里的完整值。"""
     na, nb = _city_key(a), _city_key(b)
     if len(na) < 2 or len(nb) < 2:
         return False
-    return na not in nb and nb not in na
+    if na in nb or nb in na:
+        return False
+    if na.startswith(nb):
+        return False
+    # 爬虫给的更粗（更短）→ 保留库里更细的旧值，避免用"腾格里沙漠"覆盖
+    # "大漠黄河户外运动目的地沙漠区 音乐盛典广场"这类具体起终点
+    if len(nb) < len(na):
+        return False
+    return not (_is_subseq(na, nb) or _is_subseq(nb, na))
+
+
+def _city_truncated(c):
+    """爬虫的 city 正则在特殊字符处会把地名截断（"…石塘中学旁海上公"）。
+    这类串的末字几乎不可能是一个地名结尾，遇到就保留库里更完整的旧值。"""
+    return bool(c) and c[-1] in '公景广游服停'
+
+
+def _city_province_mismatch(city, province):
+    """city 自带的地点前缀若指向另一个省，说明这条 city 与记录的省份矛盾
+    （如河北的赛事给出"北京江水河村"）→ 不可信。"""
+    from _lib.province import split_province_city
+    p = split_province_city(city)[0]
+    return bool(p) and bool(province) and p != province
+
+
+_COARSE_SUFFIX = ('景区', '风景区', '名胜区', '度假区', '旅游区', '旅游度假区')
+
+
+def _city_coarsens(old, new):
+    """爬虫用"风景区/度假区"这类大范围地标顶替了库里更具体的会场 → 视为变粗，
+    保留旧值（「湖南 衡阳市 南岳区 万寿广场」→「湖南省衡阳市南岳衡山景区」）。
+    旧串本身就以这类大范围结尾时不拦（那是在纠正归属，交给上一层冲突判断）。
+    特判：只在两边都带字面地名时才比，纯省市串不受影响。"""
+    o, n = re.sub(r'\s+', '', old or ''), re.sub(r'\s+', '', new or '')
+    if len(o) < 6 or len(n) < 6:
+        return False
+    return any(n.endswith(s) for s in _COARSE_SUFFIX) and not any(o.endswith(s) for s in _COARSE_SUFFIX)
 
 
 def sync_city_province(existing, crawled, src):
@@ -789,6 +1127,14 @@ def sync_city_province(existing, crawled, src):
             continue
         prov_diff = e.get('province') != cr.get('province')
         city_diff = bool(cr.get('city')) and _city_conflicts(e.get('city'), cr.get('city'))
+        # 爬虫地点串被截断 / 自带省份与记录矛盾 / 用"风景区"这类大范围地标顶替具体会场
+        # → 不可信，保留库里旧值
+        if city_diff and (_city_truncated(clean_city(cr['city']))
+                          or (not prov_diff and _city_province_mismatch(
+                              clean_city(cr['city']), cr.get('province')))
+                          or (not prov_diff and _city_coarsens(
+                              clean_city(e.get('city')), clean_city(cr['city'])))):
+            city_diff = False
         # 同一个 link（最酷 event id）就代表同一场赛事 → 改期就该跟着改。
         # 日期不同步的话，改期后库里会一直停在旧日期（曾是「澜跑无锡」07-17 /「朱雀」10-31 的成因）。
         date_diff = bool(cr.get('date')) and e.get('date') != cr.get('date')
@@ -911,14 +1257,16 @@ def sync_reg_deadline(existing, crawled, src):
     return new_src, changed
 
 
-def _merge_dists(old, new):
+def _merge_dists(old, new, drop_stale=False):
     """按组别（距离）逐字段合并：
       · 新有、旧无 → 加入（页面新增了组别）
       · 旧有、新无 → 保留（页面删了也别丢我们已有的）
+                    drop_stale=True 时改为丢弃 —— zuicool 详情页是组别的权威来源，
+                    页面上没有的组别就是我们解析错的脏 key（旧版整页扫 km 的残留）
       · 两边都有   → 用新的，但新缺 climb/time 时沿用旧的
     """
     old_by = {d.get('d'): d for d in old if d.get('d')}
-    out, seen = [], set()
+    out, seen, dropped = [], set(), []
     for d in new:
         k = d.get('d')
         if not k:
@@ -933,10 +1281,13 @@ def _merge_dists(old, new):
         out.append(item)
     for d in old:
         if d.get('d') and d.get('d') not in seen:
-            out.append(dict(d))
+            if drop_stale:
+                dropped.append(d['d'])
+            else:
+                out.append(dict(d))
     # 与 sort_all_distances 保持同一顺序，否则每轮都会因"顺序不同"再改一次（不幂等）
     out.sort(key=lambda d: -int(''.join(c for c in (d.get('d') or '') if c.isdigit()) or 0))
-    return out
+    return out, dropped
 
 
 def _dist_ratio_bad(dists, limit=400):
@@ -956,31 +1307,50 @@ def merge_existing_distances(existing, crawled, src):
     闸门：详情页标题与赛事名对不上 → 说明 link 串了别的赛事，整条跳过并记录下来。"""
     import re as _re
     from _lib.parse import normalize_name
-    by_link, by_key = {}, {}
+    by_link, by_key, by_lk = {}, {}, {}
     for plat, races in crawled.items():
         for r in races:
-            if r.get('link'):
-                m = _re.match(r'https?://([^/?#]+)', r['link'])
+            link = r.get('link', '')
+            if link:
+                m = _re.match(r'https?://([^/?#]+)', link)
                 if m:
                     by_link.setdefault(m.group(1), []).append((plat, r))
+                kl = link_key(link)
+                if kl:
+                    by_lk.setdefault(kl, []).append((plat, r))
             k = (normalize_name(r.get('name', '')), r.get('date', ''))
             if k[0] and k[1]:
                 by_key.setdefault(k, []).append((plat, r))
     new_src = src
-    updated, mismatched, flagged = 0, [], []
+    updated, mismatched, flagged, stale = 0, [], [], []
     for e in existing:
         matched = None
-        if e.get('link'):
+        # ① 先按 link_key 认人：zuicool 是 event id，其他平台是完整 URL。
+        #    绝不能按"主机名 + 名称"认 —— zuicool 所有赛事的 host 都是 zuicool.com，
+        #    同名不同届（UTO南京老山站 2/8、5/10、8/30、11/15）会被串成同一场，
+        #    组别整批错配（踩过）。
+        cand = by_lk.get(link_key(e.get('link', '')))
+        if cand:
+            cand.sort(key=lambda pr: 0 if pr[0] == 'zuicool' else 1)
+            cand = cand[0]
+            # zui 的 id 偶有复用（旧链接变成另一场赛事），要求两边名字仍有共同片段
+            if _same_race_by_id(e, cand[1]):
+                matched = cand
+        # ② link 变了但仍是同一场（非 zuicool）：主机名 + 名称 + 日期都相同才算
+        if not matched and e.get('link'):
             m = _re.match(r'https?://([^/?#]+)', e['link'])
-            if m:
+            if m and m.group(1) not in ('zuicool.com', 'reg.zuicool.com'):
                 for cplat, c in by_link.get(m.group(1), []):
-                    if normalize_name(c.get('name', '')) == normalize_name(e['name']):
+                    if (normalize_name(c.get('name', '')) == normalize_name(e['name'])
+                            and c.get('date') == e.get('date')):
                         matched = (cplat, c)
                         break
+        # ③ 兜底：同名同日期，且去重后只剩一个 link_key（避免届次含糊时乱配）
         if not matched:
             cands = by_key.get((normalize_name(e['name']), e.get('date', '')), [])
-            if cands:
-                matched = cands[0]
+            uniq = {link_key(c.get('link', '')) or f'{p}:{c.get("name")}': (p, c) for p, c in cands}
+            if len(uniq) == 1:
+                matched = next(iter(uniq.values()))
         if not matched:
             continue
         matched_plat, matched_race = matched
@@ -988,12 +1358,24 @@ def merge_existing_distances(existing, crawled, src):
             mismatched.append(f"{e['name'][:28]}({e.get('link', '')[-8:]})")
             continue
         crawled_dists = matched_race.get('distances') or []
-        if not crawled_dists:
-            continue
         existing_dists = e.get('distances') or []
+        pending = bool(matched_race.get('dists_pending'))
+        authoritative = bool(matched_race.get('dists_authoritative'))
+        # 权威且新值为空 = 页面压根不分组 → 库里的旧组别是脏数据，要清掉，不能跳过
+        if not crawled_dists and not (pending or authoritative):
+            continue
+        # zuicool 只在"本次真抓了详情"时才有权改库：增量跳过的条目沿用上次输出的旧值，
+        # 那份值本身就是旧解析器的产物，再合并一次只会把假组别加回去（踩过：梅里100 加回 5K）
+        if matched_plat == 'zuicool' and not authoritative and not pending:
+            continue
         if matched_plat != 'zuicool' and existing_dists:
             continue
-        merged = _merge_dists(existing_dists, crawled_dists)
+        # zuicool 详情页的 lead 块是组别的正式枚举 → 页面上没有的旧 key 一律视为脏数据
+        drop_stale = matched_plat == 'zuicool' and not pending and authoritative
+        if pending:
+            merged, dropped = [], [d.get('d', '') for d in existing_dists]
+        else:
+            merged, dropped = _merge_dists(existing_dists, crawled_dists, drop_stale=drop_stale)
         if merged == existing_dists:
             continue
         raw = e['_raw']
@@ -1010,9 +1392,16 @@ def merge_existing_distances(existing, crawled, src):
         if new_raw != raw:
             new_src = new_src.replace(raw, new_raw, 1)
             updated += 1
+            if dropped:
+                stale.append(f"{e['name'][:34]}  删 {','.join(dropped)}  留 "
+                             f"{','.join(d.get('d', '') for d in merged) or '（无）'}")
             bad = _dist_ratio_bad(merged)
             if bad:
                 flagged.append(f"{e['name'][:26]}: {' '.join(bad)}")
+    if stale:
+        print(f'[merge] 组别清理：按详情页删除页面上不存在的旧组别 {len(stale)} 条')
+        for x in stale:
+            print(f'         {x}')
     if mismatched:
         print(f'[merge] ⚠ 详情页标题与赛事名不符（link 可能串了别的赛事），已跳过 {len(mismatched)} 条:')
         for x in mismatched[:8]:
@@ -1059,20 +1448,44 @@ def main():
         print(f'[merge] 已认领官方站点 {len(claimed)} 个')
 
     # 0. 跨平台去重：删除被其他条目认领官方站点的独立条目（如 utmb 英文重复）
-    src, dropped = drop_claimed_duplicates(existing, claimed, src)
+    new_src, dropped = drop_claimed_duplicates(existing, claimed, src)
     if dropped:
         dropped_set = set(dropped)
         existing = [e for e in existing if e['name'] not in dropped_set]
         print(f'[merge] 去重删除 {len(dropped)} 场: {dropped[:5]}')
 
-    # 1. 重算 status
-    new_src, status_changed = auto_recalc_status(existing, src)
-    print(f'[merge] 重算 status: {status_changed} 场')
-
     # 同步类步骤会重写行内容，必须重新解析：否则某些条目在本轮被改过（如 status），
     # 后续步骤拿旧的 _raw 去 replace 会静默失败（日志却仍记成"已修正"）。
     def _reparse():
         return parse_races_text(new_src)
+
+    # 0.5 清掉 endDate 早于 date 的不可能区间（必须在重算 status 之前）
+    new_src, bad_end = drop_impossible_enddate(existing, new_src)
+    if bad_end:
+        print(f'[merge] 清除非法结束日 {len(bad_end)} 场: {bad_end[:3]}')
+
+    existing = _reparse()
+    # 0.6 旧 event id 已下架、同赛事换了新 id → link 指过去，后续同步步骤才能匹配上
+    new_src, relinked = sync_link(existing, crawled, new_src)
+    if relinked:
+        print(f'[merge] 修正失效 link {len(relinked)} 场: {relinked[:3]}')
+
+    existing = _reparse()
+    # 0.7 同一 event id 仍在售但赛事改名了 → 跟上爬虫名（否则该条永远匹配不上）
+    new_src, renamed = sync_rename(existing, crawled, new_src)
+    if renamed:
+        print(f'[merge] 同步改名 {len(renamed)} 场: {renamed[:3]}')
+
+    existing = _reparse()
+    # 0.75 条目挂在"只有预告"的 listing 上、同一赛事另有带组别的 listing → 换 link
+    new_src, upgraded = upgrade_preview_links(existing, crawled, new_src)
+    if upgraded:
+        print(f'[merge] 换成更全的 listing {len(upgraded)} 场: {upgraded[:3]}')
+
+    existing = _reparse()
+    # 1. 重算 status
+    new_src, status_changed = auto_recalc_status(existing, new_src)
+    print(f'[merge] 重算 status: {status_changed} 场')
 
     # 1.2 修正已有条目的港澳台省份（详情页地点常误写为大陆）
     existing = _reparse()
@@ -1125,8 +1538,8 @@ def main():
         new_src, added = insert_new_races(new_src, new_by_plat)
         print(f'[merge] 新增 {added} 场')
 
-    # 3.5 最终去重（同 link_key / 同 name+date 只留信息最全的）
-    new_src, deduped = dedupe_final(new_src)
+    # 3.5 最终去重（同 link_key / 同 name+date / 同源预告孪生 只留信息最全的）
+    new_src, deduped = dedupe_final(new_src, crawled)
     if deduped:
         print(f'[merge] 最终去重 {len(deduped)} 场')
 

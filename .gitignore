@@ -8,6 +8,7 @@ backup/
 .claude/
 archive/
 .i-have-adhd-always
+docs/
 
 # Crawler outputs (daily runs)
 crawl/output/
